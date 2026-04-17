@@ -416,11 +416,7 @@ class TradingEngine:
                     self._handle_sell(
                         pair, sell_signal, pos_repo, trade_repo, None, signal_repo
                     )
-                    if self.notifier:
-                        pnl_pct = (price - entry) / entry * 100
-                        self.notifier.send_error(
-                            f"STOP LOSS: {pair} @ {price} | PnL: {pnl_pct:+.2f}%"
-                        )
+                    # Note: send_trade_sell() is already called inside _handle_sell()
 
                 # Check TP
                 elif tp and self.risk_manager.should_take_profit(price, tp, pos.side):
