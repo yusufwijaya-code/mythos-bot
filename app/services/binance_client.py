@@ -213,3 +213,13 @@ class BinanceService:
                 if f["filterType"] == "LOT_SIZE":
                     return float(f["stepSize"])
         return 0.001
+
+    def get_min_notional(self, pair: str) -> float:
+        """Get minimum order value (quantity × price) for a pair."""
+        info = self.get_symbol_info(pair)
+        if info:
+            for f in info.get("filters", []):
+                # Binance uses MIN_NOTIONAL or NOTIONAL filter depending on pair
+                if f["filterType"] in ("MIN_NOTIONAL", "NOTIONAL"):
+                    return float(f.get("minNotional", 0))
+        return 5.0  # Binance default minimum notional

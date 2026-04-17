@@ -212,6 +212,17 @@ class TradingEngine:
             logger.warning(f"[{pair}] Position size too small")
             return
 
+        # Check minimum notional (quantity × price >= min_notional)
+        if not self.is_paper:
+            min_notional = self.binance.get_min_notional(pair)
+            order_value = quantity * price
+            if order_value < min_notional:
+                logger.warning(
+                    f"[{pair}] Order value {order_value:.2f} USDT below "
+                    f"min notional {min_notional} USDT, skipping BUY"
+                )
+                return  # Not an error — just insufficient balance for this pair
+
         # Execute order
         if self.is_paper:
             order = self.paper.place_order(pair, "BUY", quantity, price)
