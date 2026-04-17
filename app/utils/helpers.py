@@ -1,4 +1,7 @@
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+TZ_JAKARTA = ZoneInfo("Asia/Jakarta")
 
 
 def timestamp_to_datetime(ts_ms: int) -> datetime:
@@ -35,5 +38,5 @@ def format_pair(pair: str) -> str:
 
 
 def now_str() -> str:
-    """Get current time as formatted string."""
-    return datetime.now().strftime("%Y-%m-%d %H:%M")
+    """Get current time as formatted string in Asia/Jakarta timezone."""
+    return datetime.now(tz=TZ_JAKARTA).strftime("%Y-%m-%d %H:%M WIB")

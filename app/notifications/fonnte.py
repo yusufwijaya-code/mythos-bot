@@ -11,6 +11,7 @@ class FonnteNotifier(BaseNotifier):
 
     API_URL = "https://api.fonnte.com/send"
     MAX_RETRIES = 3
+    DASHBOARD_LINK = "bit.ly/mythosbymydios"
 
     def __init__(self):
         self.token = settings.FONNTE_TOKEN
@@ -23,10 +24,12 @@ class FonnteNotifier(BaseNotifier):
             logger.warning("Fonnte token or target not configured, skipping notification")
             return False
 
+        full_message = f"{message}\n\n📊 Dashboard: {self.DASHBOARD_LINK}"
+
         headers = {"Authorization": self.token}
         payload = {
             "target": self.target,
-            "message": message,
+            "message": full_message,
         }
 
         for attempt in range(1, self.MAX_RETRIES + 1):

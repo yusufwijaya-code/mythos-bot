@@ -76,6 +76,17 @@ class BinanceService:
             logger.error(f"Binance API error getting balance for {asset}: {e}")
             return 0.0
 
+    def get_free_balance(self, asset: str) -> float:
+        """Get only free (available) balance for an asset."""
+        try:
+            balance = self.client.get_asset_balance(asset=asset)
+            if balance:
+                return float(balance["free"])
+            return 0.0
+        except BinanceAPIException as e:
+            logger.error(f"Binance API error getting free balance for {asset}: {e}")
+            return 0.0
+
     def get_total_portfolio_usdt(self) -> float:
         """Get total portfolio value in USDT (all assets converted to USDT equivalent).
 

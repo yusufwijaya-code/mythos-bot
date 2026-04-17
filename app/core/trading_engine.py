@@ -243,6 +243,29 @@ class TradingEngine:
 
         quantity = float(position.quantity)
 
+        # For live trading, use actual free balance to account for trading fees
+        # Binance deducts fee from received asset (e.g. BTC), so actual balance
+        # is slightly less than the ordered quantity (e.g. 0.00013 * 0.999 = 0.00012987)
+        if not self.is_paper:
+            base_asset = pair.replace("USDT", "")
+            actual_free = self.binance.get_free_balance(base_asset)
+            if actual_free < quantity:
+                step_size = self.binance.get_step_size(pair)
+                if step_size > 0:
+                    adjusted = int(actual_free / step_size) * step_size
+                    adjusted = round(adjusted, 8)
+                else:
+                    adjusted = actual_free
+                logger.info(
+                    f"[{pair}] Adjusting SELL qty from {quantity} to {adjusted} "
+                    f"(actual free: {actual_free})"
+                )
+                quantity = adjusted
+
+            if quantity <= 0:
+                logger.warning(f"[{pair}] No {base_asset} balance available to sell, skipping")
+                return
+
         # Execute order
         if self.is_paper:
             order = self.paper.place_order(pair, "SELL", quantity, price)
@@ -251,6 +274,8 @@ class TradingEngine:
 
         if not order:
             self.risk_manager.record_error()
+            # Prevent retry loop: mark as last signal so dedup skips next cycle
+            self._last_signals[pair] = "SELL"
             return
 
         entry_price = float(position.entry_price)
