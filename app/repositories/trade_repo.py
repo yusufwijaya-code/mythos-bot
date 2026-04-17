@@ -65,7 +65,7 @@ class TradeRepository:
         trades = q.all()
 
         sell_trades = [t for t in trades if t.side == "SELL" and t.pnl is not None]
-        total = len(sell_trades)
+        completed = len(sell_trades)
         winners = [t for t in sell_trades if float(t.pnl) > 0]
         losers = [t for t in sell_trades if float(t.pnl) <= 0]
 
@@ -74,10 +74,11 @@ class TradeRepository:
 
         return {
             "date": target_date.isoformat(),
-            "total_trades": total,
+            "total_trades": len(trades),       # All trades (BUY + SELL)
+            "completed_trades": completed,      # Closed round-trips only
             "winning_trades": len(winners),
             "losing_trades": len(losers),
-            "win_rate": round(len(winners) / total * 100, 2) if total else 0,
+            "win_rate": round(len(winners) / completed * 100, 2) if completed else 0,
             "net_profit": round(gross_profit - gross_loss, 2),
             "gross_profit": round(gross_profit, 2),
             "gross_loss": round(gross_loss, 2),

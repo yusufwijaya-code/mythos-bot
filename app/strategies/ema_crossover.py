@@ -82,11 +82,16 @@ class EMACrossoverStrategy(BaseStrategy):
 
         # SELL conditions
         ema_bearish = last.get("ema_crossover", 0) == 0  # fast EMA currently below slow
-        rsi_overbought = rsi_val > self.rsi.overbought
+        rsi_overbought = rsi_val > self.rsi.overbought   # RSI > 70
         macd_turning_neg = macd_hist < 0 and prev_macd_hist >= 0  # Momentum reversal
+        # Soft exit: covers RSI 65-70 gap where neither BUY nor SELL would otherwise trigger.
+        # If RSI is above buy zone AND MACD momentum is fading, exit early.
+        rsi_elevated = rsi_val > 65
+        macd_declining = macd_hist < prev_macd_hist and macd_hist > 0
+        momentum_fading = rsi_elevated and macd_declining
 
         buy_score = sum([rsi_momentum, macd_positive, macd_growing, volume_ok, price_above_200ema])
-        sell_score = sum([ema_bearish, rsi_overbought, macd_turning_neg])
+        sell_score = sum([ema_bearish, rsi_overbought, macd_turning_neg, momentum_fading])
 
         # BUY: fast EMA above slow + price in uptrend + 4+ indicator confirmations
         if ema_bullish and price_above_200ema and buy_score >= 4:
@@ -110,9 +115,9 @@ class EMACrossoverStrategy(BaseStrategy):
                 reason=", ".join(reasons),
             )
 
-        # SELL: bearish crossover OR RSI overbought OR MACD momentum reversal
-        if sell_score >= 1 and (ema_bearish or rsi_overbought or macd_turning_neg):
-            confidence = min(sell_score / 3 * 100, 95)
+        # SELL: bearish EMA | RSI overbought | MACD reversal | momentum fading
+        if sell_score >= 1:
+            confidence = min(sell_score / 4 * 100, 95)
             reasons = []
             if ema_bearish:
                 reasons.append("EMA21 < EMA55 (bearish)")
@@ -120,6 +125,8 @@ class EMACrossoverStrategy(BaseStrategy):
                 reasons.append(f"RSI overbought={indicators['rsi']}")
             if macd_turning_neg:
                 reasons.append("MACD momentum reversal")
+            if momentum_fading:
+                reasons.append(f"RSI={indicators['rsi']} elevated + MACD fading")
 
             logger.info(f"[{pair}] SELL signal: {', '.join(reasons)}")
             return SignalResult(
