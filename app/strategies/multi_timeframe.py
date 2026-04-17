@@ -34,12 +34,14 @@ class MultiTimeframeStrategy(BaseStrategy):
         ema_fast_col = f"ema_{self.ema.fast_period}"
         ema_slow_col = f"ema_{self.ema.slow_period}"
 
+        fast_above_slow = last.get(ema_fast_col, 0) > last.get(ema_slow_col, 0)
         return {
-            "trend": "bullish" if last.get(ema_fast_col, 0) > last.get(ema_slow_col, 0) else "bearish",
+            "trend": "bullish" if fast_above_slow else "bearish",
             "rsi": float(last.get("rsi", 50)),
             "macd_histogram": float(last.get("macd_histogram", 0)),
             "near_support": bool(last.get("near_support", 0)),
             "near_resistance": bool(last.get("near_resistance", 0)),
+            "ema_bullish": int(fast_above_slow),   # 1 = fast > slow (position state)
             "ema_crossover_signal": float(last.get("ema_crossover_signal", 0)),
             "close": float(last["close"]),
         }
@@ -82,19 +84,19 @@ class MultiTimeframeStrategy(BaseStrategy):
             "close": primary["close"],
         }
 
-        # BUY: Higher TF bullish + primary TF gives entry signal
+        # BUY: Higher TF bullish + primary TF in bullish EMA state + confirmations
         buy_conditions = [
             higher["trend"] == "bullish",
-            primary["ema_crossover_signal"] == 1,
+            primary["ema_bullish"] == 1,   # fast EMA above slow (not just crossover event)
             primary["rsi"] < 65,
             primary["macd_histogram"] > 0,
             primary["near_support"],
         ]
 
-        # SELL: Higher TF bearish + primary TF gives exit signal
+        # SELL: Higher TF bearish + primary TF in bearish EMA state + confirmations
         sell_conditions = [
             higher["trend"] == "bearish",
-            primary["ema_crossover_signal"] == -1,
+            primary["ema_bullish"] == 0,   # fast EMA below slow
             primary["rsi"] > 35,
             primary["macd_histogram"] < 0,
             primary["near_resistance"],
