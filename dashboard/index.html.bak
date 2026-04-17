@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Trading Mythos - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --bg-card: #161b22;
+            --bg-card2: #1c2333;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --text-muted: #8b949e;
+            --green: #3fb950;
+            --red: #f85149;
+            --blue: #58a6ff;
+            --yellow: #d29922;
+            --purple: #bc8cff;
+        }
+        body { background: var(--bg-dark); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; }
+        .navbar { background: var(--bg-card) !important; border-bottom: 1px solid var(--border); }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; }
+        .card-header { background: var(--bg-card2); border-bottom: 1px solid var(--border); font-weight: 600; }
+        .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; text-align: center; }
+        .stat-value { font-size: 1.75rem; font-weight: 700; }
+        .stat-label { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .text-profit { color: var(--green); }
+        .text-loss { color: var(--red); }
+        .text-info-custom { color: var(--blue); }
+        .badge-buy { background: var(--green); color: #fff; }
+        .badge-sell { background: var(--red); color: #fff; }
+        .badge-hold { background: var(--yellow); color: #000; }
+        .badge-paper { background: var(--purple); }
+        .badge-live { background: var(--red); }
+        .badge-active { background: var(--green); }
+        .badge-stopped { background: var(--text-muted); }
+        .table { color: var(--text); }
+        .table thead th { border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+        .table td { border-color: var(--border); vertical-align: middle; }
+        .table-hover tbody tr:hover { background: rgba(88,166,255,0.05); }
+        .btn-success { background: var(--green); border-color: var(--green); }
+        .btn-danger { background: var(--red); border-color: var(--red); }
+        .log-entry { font-family: 'Consolas', monospace; font-size: 0.82rem; padding: 4px 8px; border-bottom: 1px solid var(--border); }
+        .log-INFO { color: var(--blue); }
+        .log-WARNING { color: var(--yellow); }
+        .log-ERROR { color: var(--red); }
+        .log-container { max-height: 400px; overflow-y: auto; background: var(--bg-card2); border-radius: 6px; }
+        #pnlChart { max-height: 300px; }
+        .refresh-info { font-size: 0.75rem; color: var(--text-muted); }
+        /* Login */
+        .login-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .login-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; max-width: 420px; width: 100%; text-align: center; }
+        .login-card h2 { margin-bottom: 0.5rem; }
+        .google-btn { background: #fff; color: #333; border: 1px solid #ddd; border-radius: 6px; padding: 10px 24px; font-size: 1rem; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: box-shadow 0.2s; }
+        .google-btn:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+        .google-btn img { width: 20px; height: 20px; }
+        /* Health */
+        .health-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+        .health-healthy { background: var(--green); }
+        .health-degraded { background: var(--yellow); }
+        .health-unhealthy { background: var(--red); }
+        .health-unknown { background: var(--text-muted); }
+        .user-info { display: flex; align-items: center; gap: 8px; }
+        .user-info img { width: 28px; height: 28px; border-radius: 50%; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== LOGIN PAGE ==================== -->
+<div id="loginPage" class="login-container">
+    <div class="login-card">
+        <h2><i class="bi bi-robot"></i> Bot Trading Mythos</h2>
+        <p class="text-muted mb-4">Login to access the trading dashboard</p>
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="mb-3">
+                <input type="email" class="form-control bg-dark text-light border-secondary" id="loginEmail" placeholder="Email" required>
+            </div>
+            <div class="mb-3">
+                <input type="password" class="form-control bg-dark text-light border-secondary" id="loginPassword" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-box-arrow-in-right"></i> Login
+            </button>
+        </form>
+        <div id="loginError" class="text-danger mt-3" style="display:none;"></div>
+        <p class="text-muted mt-4" style="font-size:0.8rem;">Enter your credentials to access this system.</p>
+    </div>
+</div>
+
+<!-- ==================== DASHBOARD (hidden until login) ==================== -->
+<div id="dashboardPage" style="display:none;">
+
+<!-- Navbar -->
+<nav class="navbar navbar-dark px-3">
+    <span class="navbar-brand mb-0 h5">
+        <i class="bi bi-robot"></i> Bot Trading Mythos
+    </span>
+    <div class="d-flex align-items-center gap-3">
+        <span id="modeIndicator" class="badge badge-paper">PAPER</span>
+        <span id="statusIndicator" class="badge badge-stopped">STOPPED</span>
+        <span class="refresh-info">Auto-refresh: <span id="countdown">15</span>s</span>
+        <div class="user-info">
+            <img id="userPicture" src="" alt="" style="display:none;">
+            <span id="userEmail" class="text-muted small"></span>
+            <button class="btn btn-outline-secondary btn-sm" onclick="logout()">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid p-3">
+
+    <!-- Stats Row -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-2 col-6">
+            <div class="stat-card">
+                <div class="stat-label">Balance (USDT)</div>
+                <div class="stat-value text-info-custom" id="balance">-</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="stat-card">
+                <div class="stat-label">Today Trades</div>
+                <div class="stat-value" id="todayTrades">0</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="stat-card">
+                <div class="stat-label">Win Rate</div>
+                <div class="stat-value" id="winRate">0%</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="stat-card">
+                <div class="stat-label">Today PnL</div>
+                <div class="stat-value" id="todayPnl">0.00</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="stat-card">
+                <div class="stat-label">Strategy</div>
+                <div class="stat-value" id="strategyName" style="font-size:1rem;">-</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="stat-card">
+                <div class="stat-label">Errors</div>
+                <div class="stat-value" id="errorCount">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Health Monitoring + Control Panel -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-heart-pulse"></i> System Health</div>
+                <div class="card-body" id="healthPanel">
+                    <div class="text-muted">Loading...</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-gear"></i> Bot Control</div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success" onclick="controlBot('start')">
+                            <i class="bi bi-play-fill"></i> Start Bot
+                        </button>
+                        <button class="btn btn-danger" onclick="controlBot('stop')">
+                            <i class="bi bi-stop-fill"></i> Stop Bot
+                        </button>
+                    </div>
+                    <hr style="border-color:var(--border);">
+                    <div class="mb-2">
+                        <label class="form-label text-muted small">Trading Mode</label>
+                        <select class="form-select form-select-sm bg-dark text-light border-secondary" id="modeSelect" onchange="changeMode()">
+                            <option value="paper">Paper Trading</option>
+                            <option value="live">Live Trading</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label text-muted small">Strategy</label>
+                        <select class="form-select form-select-sm bg-dark text-light border-secondary" id="strategySelect" onchange="changeStrategy()"></select>
+                    </div>
+                    <hr style="border-color:var(--border);">
+                    <button class="btn btn-outline-warning btn-sm w-100" onclick="clearEmergency()">
+                        <i class="bi bi-exclamation-triangle"></i> Clear Emergency Stop
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-graph-up"></i> PnL Chart</div>
+                <div class="card-body">
+                    <canvas id="pnlChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Positions + Recent Trades -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-wallet2"></i> Open Positions</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th>Pair</th><th>Entry</th><th>Current</th><th>PnL</th><th>SL / TP</th></tr></thead>
+                            <tbody id="positionsTable">
+                                <tr><td colspan="5" class="text-center text-muted py-3">No open positions</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-clock-history"></i> Recent Trades</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height:350px;overflow-y:auto;">
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th>Time</th><th>Pair</th><th>Side</th><th>Price</th><th>Qty</th><th>PnL</th></tr></thead>
+                            <tbody id="tradesTable">
+                                <tr><td colspan="6" class="text-center text-muted py-3">No trades yet</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signals + Logs -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-broadcast"></i> Recent Signals</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height:350px;overflow-y:auto;">
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th>Time</th><th>Pair</th><th>Signal</th><th>Confidence</th><th>Executed</th></tr></thead>
+                            <tbody id="signalsTable">
+                                <tr><td colspan="5" class="text-center text-muted py-3">No signals</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-terminal"></i> System Logs</span>
+                    <div>
+                        <button class="btn btn-outline-light btn-sm" onclick="loadLogs()">All</button>
+                        <button class="btn btn-outline-info btn-sm" onclick="loadLogs('INFO')">Info</button>
+                        <button class="btn btn-outline-warning btn-sm" onclick="loadLogs('WARNING')">Warn</button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="loadLogs('ERROR')">Error</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="log-container" id="logsContainer">
+                        <div class="log-entry text-muted">Waiting for logs...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backtest Section -->
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-speedometer2"></i> Backtesting</div>
+                <div class="card-body">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Pair</label>
+                            <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" id="btPair" value="BTCUSDT">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Timeframe</label>
+                            <select class="form-select form-select-sm bg-dark text-light border-secondary" id="btTimeframe">
+                                <option value="1m">1m</option><option value="5m">5m</option><option value="15m">15m</option>
+                                <option value="1h" selected>1h</option><option value="4h">4h</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Strategy</label>
+                            <select class="form-select form-select-sm bg-dark text-light border-secondary" id="btStrategy">
+                                <option value="ema_crossover">EMA Crossover</option>
+                                <option value="multi_timeframe">Multi Timeframe</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Days</label>
+                            <input type="number" class="form-control form-control-sm bg-dark text-light border-secondary" id="btDays" value="30" min="7" max="90">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Initial Balance</label>
+                            <input type="number" class="form-control form-control-sm bg-dark text-light border-secondary" id="btBalance" value="10000">
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary btn-sm w-100" onclick="runBacktest()" id="btBtn">
+                                <i class="bi bi-play"></i> Run Backtest
+                            </button>
+                        </div>
+                    </div>
+                    <div id="btResults" class="mt-3" style="display:none;">
+                        <div class="row g-3">
+                            <div class="col-md-8"><canvas id="btChart" height="200"></canvas></div>
+                            <div class="col-md-4"><div id="btMetrics"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div><!-- end dashboardPage -->
+
+<script>
+const API = '';
+let pnlChart = null;
+let btChart = null;
+let refreshInterval = null;
+let countdownVal = 15;
+let authToken = localStorage.getItem('authToken');
+let currentUser = null;
+
+// ==================== AUTH ====================
+
+function getAuthHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
+    return headers;
+}
+
+async function fetchJSON(url) {
+    try {
+        const res = await fetch(API + url, { headers: getAuthHeaders() });
+        if (res.status === 401) { logout(); return null; }
+        return await res.json();
+    } catch (e) {
+        console.error('Fetch error:', url, e);
+        return null;
+    }
+}
+
+async function fetchPost(url, body = {}) {
+    const res = await fetch(API + url, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
+    });
+    if (res.status === 401) { logout(); return null; }
+    return await res.json();
+}
+
+async function handleLogin(event) {
+    event.preventDefault();
+
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorEl = document.getElementById('loginError');
+
+    if (!email || !password) {
+        errorEl.textContent = 'Please enter email and password';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    try {
+        const res = await fetch(API + '/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+
+        if (res.ok && data.access_token) {
+            authToken = data.access_token;
+            localStorage.setItem('authToken', authToken);
+            currentUser = data.user;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            errorEl.style.display = 'none';
+            showDashboard();
+        } else {
+            errorEl.textContent = data.detail || 'Invalid email or password';
+            errorEl.style.display = 'block';
+        }
+    } catch (e) {
+        console.error('Login error:', e);
+        errorEl.textContent = 'Authentication error: ' + e.message;
+        errorEl.style.display = 'block';
+    }
+}
+
+function logout() {
+    authToken = null;
+    currentUser = null;
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    if (refreshInterval) clearInterval(refreshInterval);
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('dashboardPage').style.display = 'none';
+}
+
+function showDashboard() {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('dashboardPage').style.display = 'block';
+
+    if (currentUser) {
+        document.getElementById('userEmail').textContent = currentUser.email;
+        if (currentUser.picture) {
+            const img = document.getElementById('userPicture');
+            img.src = currentUser.picture;
+            img.style.display = 'block';
+        }
+    }
+
+    startAutoRefresh();
+}
+
+async function checkAuth() {
+    // Check existing token
+    if (authToken) {
+        const data = await fetchJSON('/auth/me');
+        if (data && data.authenticated) {
+            currentUser = data.user || JSON.parse(localStorage.getItem('currentUser') || '{}');
+            showDashboard();
+            return;
+        }
+    }
+
+    // Not authenticated - show login
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('dashboardPage').style.display = 'none';
+}
+
+// ==================== HEALTH MONITORING ====================
+
+async function loadHealth() {
+    const data = await fetchJSON('/api/health/status');
+    if (!data) return;
+
+    const panel = document.getElementById('healthPanel');
+    const c = data.components || {};
+    const dotClass = { healthy: 'health-healthy', degraded: 'health-degraded', unhealthy: 'health-unhealthy' };
+
+    let html = `<div class="mb-2"><span class="health-dot ${dotClass[data.overall] || 'health-unknown'}"></span>
+        <strong>Overall: ${data.overall.toUpperCase()}</strong></div><hr style="border-color:var(--border);margin:8px 0;">`;
+
+    // Trading Engine
+    const eng = c.trading_engine || {};
+    const engColor = eng.status === 'running' ? 'text-profit' : eng.status === 'error' ? 'text-loss' : 'text-muted';
+    html += `<div class="d-flex justify-content-between mb-1"><small>Trading Engine</small><small class="${engColor}">${eng.status || '-'}</small></div>`;
+
+    // Binance
+    const bin = c.binance_api || {};
+    const binColor = bin.status === 'connected' ? 'text-profit' : 'text-loss';
+    html += `<div class="d-flex justify-content-between mb-1"><small>Binance API</small><small class="${binColor}">${bin.status || '-'}</small></div>`;
+
+    // Fonnte
+    const fon = c.fonnte || {};
+    const fonColor = fon.status === 'configured' ? 'text-profit' : 'text-loss';
+    html += `<div class="d-flex justify-content-between mb-1"><small>Fonnte (WhatsApp)</small><small class="${fonColor}">${fon.status || '-'}</small></div>`;
+
+    // Risk
+    const risk = c.risk_manager || {};
+    const emColor = risk.emergency_stop ? 'text-loss' : 'text-profit';
+    html += `<div class="d-flex justify-content-between mb-1"><small>Emergency Stop</small><small class="${emColor}">${risk.emergency_stop ? 'ACTIVE' : 'OFF'}</small></div>`;
+    html += `<div class="d-flex justify-content-between mb-1"><small>Errors Today</small><small>${risk.error_count || 0} / ${risk.max_errors || 10}</small></div>`;
+
+    // Performance
+    const perf = c.performance || {};
+    const ddColor = perf.drawdown_pct > 5 ? 'text-loss' : 'text-muted';
+    html += `<div class="d-flex justify-content-between mb-1"><small>Drawdown</small><small class="${ddColor}">${perf.drawdown_pct || 0}%</small></div>`;
+
+    // System Resources
+    const sys = c.system || {};
+    if (sys.cpu_percent !== undefined) {
+        html += `<hr style="border-color:var(--border);margin:8px 0;">`;
+        const cpuColor = sys.cpu_percent > 80 ? 'text-loss' : sys.cpu_percent > 50 ? 'text-warning' : 'text-muted';
+        const memColor = sys.memory_percent > 80 ? 'text-loss' : sys.memory_percent > 50 ? 'text-warning' : 'text-muted';
+        html += `<div class="d-flex justify-content-between mb-1"><small>CPU</small><small class="${cpuColor}">${sys.cpu_percent}%</small></div>`;
+        html += `<div class="d-flex justify-content-between mb-1"><small>Memory</small><small class="${memColor}">${sys.memory_percent}% (${sys.memory_used_mb} MB)</small></div>`;
+    }
+
+    panel.innerHTML = html;
+}
+
+// ==================== DATA LOADING ====================
+
+async function loadStats() {
+    const data = await fetchJSON('/api/stats');
+    if (!data) return;
+
+    document.getElementById('balance').textContent = parseFloat(data.balance).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+    const mode = data.mode;
+    const modeEl = document.getElementById('modeIndicator');
+    modeEl.textContent = mode.toUpperCase();
+    modeEl.className = mode === 'live' ? 'badge badge-live' : 'badge badge-paper';
+
+    const statusEl = document.getElementById('statusIndicator');
+    statusEl.textContent = data.bot_active ? 'RUNNING' : 'STOPPED';
+    statusEl.className = data.bot_active ? 'badge badge-active' : 'badge badge-stopped';
+
+    document.getElementById('strategyName').textContent = data.strategy.replace('_', ' ');
+    document.getElementById('errorCount').textContent = data.risk.error_count;
+    document.getElementById('errorCount').className = data.risk.error_count > 0 ? 'stat-value text-loss' : 'stat-value';
+
+    if (data.today) {
+        document.getElementById('todayTrades').textContent = data.today.total_trades;
+        document.getElementById('winRate').textContent = data.today.win_rate + '%';
+        const pnl = data.today.net_profit;
+        const pnlEl = document.getElementById('todayPnl');
+        pnlEl.textContent = (pnl >= 0 ? '+' : '') + pnl.toFixed(2);
+        pnlEl.className = pnl >= 0 ? 'stat-value text-profit' : 'stat-value text-loss';
+    }
+}
+
+async function loadPositions() {
+    const data = await fetchJSON('/api/positions');
+    if (!data) return;
+    const tbody = document.getElementById('positionsTable');
+    if (!data.positions || data.positions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No open positions</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.positions.map(p => {
+        const pnlClass = p.unrealized_pnl >= 0 ? 'text-profit' : 'text-loss';
+        const sign = p.unrealized_pnl >= 0 ? '+' : '';
+        return `<tr>
+            <td><strong>${p.pair}</strong></td>
+            <td>${parseFloat(p.entry_price).toFixed(2)}</td>
+            <td>${p.current_price ? parseFloat(p.current_price).toFixed(2) : '-'}</td>
+            <td class="${pnlClass}">${sign}${p.unrealized_pnl.toFixed(2)} (${sign}${p.unrealized_pnl_pct.toFixed(1)}%)</td>
+            <td><small class="text-loss">${p.stop_loss ? parseFloat(p.stop_loss).toFixed(2) : '-'}</small> / <small class="text-profit">${p.take_profit ? parseFloat(p.take_profit).toFixed(2) : '-'}</small></td>
+        </tr>`;
+    }).join('');
+}
+
+async function loadTrades() {
+    const data = await fetchJSON('/api/trades?limit=30');
+    if (!data) return;
+    const tbody = document.getElementById('tradesTable');
+    if (!data.trades || data.trades.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">No trades yet</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.trades.map(t => {
+        const sideClass = t.side === 'BUY' ? 'badge-buy' : 'badge-sell';
+        let pnlHtml = '-';
+        if (t.pnl !== null) {
+            const pnlClass = t.pnl >= 0 ? 'text-profit' : 'text-loss';
+            const sign = t.pnl >= 0 ? '+' : '';
+            pnlHtml = `<span class="${pnlClass}">${sign}${t.pnl.toFixed(2)}</span>`;
+        }
+        const time = t.created_at ? new Date(t.created_at).toLocaleString() : '-';
+        return `<tr>
+            <td><small>${time}</small></td><td>${t.pair}</td>
+            <td><span class="badge ${sideClass}">${t.side}</span></td>
+            <td>${parseFloat(t.price).toFixed(2)}</td><td>${parseFloat(t.quantity).toFixed(6)}</td>
+            <td>${pnlHtml}</td></tr>`;
+    }).join('');
+}
+
+async function loadSignals() {
+    const data = await fetchJSON('/api/signals?limit=20');
+    if (!data) return;
+    const tbody = document.getElementById('signalsTable');
+    if (!data.signals || data.signals.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No signals</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.signals.map(s => {
+        const actionClass = s.action === 'BUY' ? 'badge-buy' : s.action === 'SELL' ? 'badge-sell' : 'badge-hold';
+        const time = s.created_at ? new Date(s.created_at).toLocaleString() : '-';
+        const conf = s.confidence !== null ? s.confidence.toFixed(0) + '%' : '-';
+        const exec = s.executed ? '<i class="bi bi-check-circle text-profit"></i>' : '<i class="bi bi-dash text-muted"></i>';
+        return `<tr><td><small>${time}</small></td><td>${s.pair}</td>
+            <td><span class="badge ${actionClass}">${s.action}</span></td><td>${conf}</td><td>${exec}</td></tr>`;
+    }).join('');
+}
+
+async function loadLogs(level = null) {
+    const url = level ? `/api/logs?level=${level}&limit=80` : '/api/logs?limit=80';
+    const data = await fetchJSON(url);
+    if (!data) return;
+    const container = document.getElementById('logsContainer');
+    if (!data.logs || data.logs.length === 0) {
+        container.innerHTML = '<div class="log-entry text-muted">No logs found</div>';
+        return;
+    }
+    container.innerHTML = data.logs.map(l => {
+        const time = l.created_at ? new Date(l.created_at).toLocaleTimeString() : '';
+        return `<div class="log-entry"><span class="log-${l.level}">[${l.level}]</span> <span class="text-muted">${time}</span> ${l.message}</div>`;
+    }).join('');
+    container.scrollTop = 0;
+}
+
+async function loadPerformanceChart() {
+    const data = await fetchJSON('/api/performance?report_type=daily&limit=14');
+    if (!data || !data.performance || data.performance.length === 0) return;
+    const sorted = data.performance.reverse();
+    const labels = sorted.map(p => p.report_date);
+    const profits = sorted.map(p => p.net_profit);
+    const cumulative = []; let sum = 0;
+    profits.forEach(p => { sum += p; cumulative.push(parseFloat(sum.toFixed(2))); });
+
+    const ctx = document.getElementById('pnlChart').getContext('2d');
+    if (pnlChart) pnlChart.destroy();
+    pnlChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Cumulative PnL (USDT)', data: cumulative,
+                borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.1)', fill: true, tension: 0.3, pointRadius: 3,
+            }, {
+                label: 'Daily PnL', data: profits, type: 'bar',
+                backgroundColor: profits.map(v => v >= 0 ? 'rgba(63,185,80,0.6)' : 'rgba(248,81,73,0.6)'), borderRadius: 3,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#8b949e' } } },
+            scales: { x: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' } } }
+        }
+    });
+}
+
+async function loadStrategies() {
+    const data = await fetchJSON('/api/strategies');
+    if (!data) return;
+    const select = document.getElementById('strategySelect');
+    select.innerHTML = data.available.map(s =>
+        `<option value="${s}" ${s === data.active ? 'selected' : ''}>${s.replace('_', ' ')}</option>`
+    ).join('');
+}
+
+// ==================== CONTROLS ====================
+
+async function controlBot(action) {
+    const data = await fetchPost(`/api/bot/${action}`);
+    if (data) { alert(data.message); loadStats(); }
+}
+
+async function changeMode() {
+    const mode = document.getElementById('modeSelect').value;
+    if (mode === 'live' && !confirm('WARNING: Switch to LIVE mode? Real money will be used!')) {
+        document.getElementById('modeSelect').value = 'paper'; return;
+    }
+    const data = await fetchPost('/api/bot/mode', { mode });
+    if (data) { alert(data.message); loadStats(); }
+}
+
+async function changeStrategy() {
+    const strategy = document.getElementById('strategySelect').value;
+    const data = await fetchPost('/api/strategy/set', { strategy });
+    if (data) { alert(data.message); loadStats(); }
+}
+
+async function clearEmergency() {
+    const data = await fetchPost('/api/emergency/clear');
+    if (data) { alert(data.message); loadStats(); loadHealth(); }
+}
+
+// ==================== BACKTEST ====================
+
+async function runBacktest() {
+    const btn = document.getElementById('btBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Running...';
+    const body = {
+        pair: document.getElementById('btPair').value,
+        timeframe: document.getElementById('btTimeframe').value,
+        strategy: document.getElementById('btStrategy').value,
+        days: parseInt(document.getElementById('btDays').value),
+        initial_balance: parseFloat(document.getElementById('btBalance').value),
+    };
+    try {
+        const data = await fetchPost('/api/backtest/run', body);
+        if (data && data.status === 'ok') showBacktestResults(data.results);
+        else alert('Backtest error: ' + (data?.message || 'Unknown'));
+    } catch (e) { alert('Backtest failed: ' + e.message); }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-play"></i> Run Backtest';
+}
+
+function showBacktestResults(r) {
+    document.getElementById('btResults').style.display = 'block';
+    const profitClass = r.net_profit >= 0 ? 'text-profit' : 'text-loss';
+    document.getElementById('btMetrics').innerHTML = `
+        <table class="table table-sm">
+            <tr><td class="text-muted">Total Trades</td><td><strong>${r.total_trades}</strong></td></tr>
+            <tr><td class="text-muted">Win Rate</td><td><strong>${r.win_rate}%</strong></td></tr>
+            <tr><td class="text-muted">Net Profit</td><td class="${profitClass}"><strong>${r.net_profit >= 0 ? '+' : ''}${r.net_profit.toFixed(2)} USDT (${r.net_profit_pct}%)</strong></td></tr>
+            <tr><td class="text-muted">Profit Factor</td><td>${r.profit_factor}</td></tr>
+            <tr><td class="text-muted">Max Drawdown</td><td class="text-loss">${r.max_drawdown_pct}%</td></tr>
+            <tr><td class="text-muted">Sharpe Ratio</td><td>${r.sharpe_ratio}</td></tr>
+            <tr><td class="text-muted">Final Balance</td><td>${r.final_balance.toLocaleString()} USDT</td></tr>
+        </table>`;
+    if (r.equity_curve && r.equity_curve.length > 0) {
+        const labels = r.equity_curve.map((e, i) => i);
+        const values = r.equity_curve.map(e => e.equity);
+        const ctx = document.getElementById('btChart').getContext('2d');
+        if (btChart) btChart.destroy();
+        btChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets: [{ label: 'Equity', data: values,
+                borderColor: r.net_profit >= 0 ? '#3fb950' : '#f85149',
+                backgroundColor: r.net_profit >= 0 ? 'rgba(63,185,80,0.1)' : 'rgba(248,81,73,0.1)',
+                fill: true, tension: 0.2, pointRadius: 0, }] },
+            options: { responsive: true, plugins: { legend: { labels: { color: '#8b949e' } } },
+                scales: { x: { display: false }, y: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' } } } }
+        });
+    }
+}
+
+// ==================== AUTO REFRESH ====================
+
+async function refreshAll() {
+    await Promise.all([loadStats(), loadPositions(), loadTrades(), loadSignals(), loadLogs(), loadPerformanceChart(), loadHealth()]);
+}
+
+function startAutoRefresh() {
+    refreshAll();
+    loadStrategies();
+    countdownVal = 15;
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(() => {
+        countdownVal--;
+        document.getElementById('countdown').textContent = countdownVal;
+        if (countdownVal <= 0) { countdownVal = 15; refreshAll(); }
+    }, 1000);
+}
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', checkAuth);
+</script>
+
+</body>
+</html>

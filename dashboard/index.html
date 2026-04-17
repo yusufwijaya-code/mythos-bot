@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Trading Mythos by MyDios</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A4%96%3C/text%3E%3C/svg%3E">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+/* ===== CYBERPUNK VARIABLES ===== */
+:root {
+    --bg:        #06070f;
+    --bg-card:   #0b0d1a;
+    --bg-card2:  #0f1120;
+    --bg-input:  #080a14;
+    --border:    #1a1f35;
+    --cyan:      #00f5ff;
+    --green:     #00ff88;
+    --pink:      #ff0055;
+    --yellow:    #ffd700;
+    --purple:    #bf5fff;
+    --orange:    #ff6b00;
+    --text:      #c8d8f0;
+    --text-dim:  #556070;
+    --text-muted:#3d4d60;
+    --font-ui:   'Orbitron', monospace;
+    --font-mono: 'Share Tech Mono', monospace;
+}
+
+/* ===== BASE ===== */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scrollbar-width: thin; scrollbar-color: var(--cyan) var(--bg-card); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-card); }
+::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 3px; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Grid background */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Scan lines */
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0,245,255,0.012) 3px,
+        rgba(0,245,255,0.012) 4px
+    );
+    pointer-events: none;
+    z-index: 9998;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes glitch {
+    0%,100% { text-shadow: 2px 0 var(--pink), -2px 0 var(--cyan); transform: translate(0); }
+    20%      { text-shadow: -3px 0 var(--pink), 3px 0 var(--cyan); transform: translate(-1px,0); }
+    40%      { text-shadow: 3px 0 var(--pink), -3px 0 var(--cyan); transform: translate(1px,0); }
+    60%      { text-shadow: -2px 0 var(--pink), 2px 0 var(--cyan); transform: translate(0); }
+}
+@keyframes neonPulse {
+    0%,100% { box-shadow: 0 0 5px var(--cyan), 0 0 15px rgba(0,245,255,.3), inset 0 0 5px rgba(0,245,255,.05); }
+    50%     { box-shadow: 0 0 10px var(--cyan), 0 0 30px rgba(0,245,255,.5), inset 0 0 10px rgba(0,245,255,.1); }
+}
+@keyframes blink     { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes scanMove  { 0% { top: -100%; } 100% { top: 200%; } }
+@keyframes fadeSlide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes borderSpin {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}
+@keyframes statusPing {
+    0%,100% { transform: scale(1); opacity: 1; }
+    50%     { transform: scale(1.4); opacity: 0.6; }
+}
+
+/* ===== LOGIN PAGE ===== */
+.login-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    position: relative;
+    z-index: 10;
+}
+
+.login-card {
+    width: 420px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 2.5rem 2rem;
+    position: relative;
+    animation: fadeSlide .5s ease;
+}
+
+/* Corner decorations */
+.login-card::before,
+.login-card::after {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    border-color: var(--cyan);
+    border-style: solid;
+}
+.login-card::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+.login-card::after  { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+
+.login-card .bc::before,
+.login-card .bc::after {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    border-color: var(--cyan);
+    border-style: solid;
+}
+.login-card .bc::before { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+.login-card .bc::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+.login-icon {
+    font-size: 3rem;
+    text-align: center;
+    margin-bottom: .75rem;
+    filter: drop-shadow(0 0 12px var(--cyan));
+}
+
+.login-title {
+    font-family: var(--font-ui);
+    font-size: 1.5rem;
+    font-weight: 900;
+    text-align: center;
+    color: var(--cyan);
+    letter-spacing: 4px;
+    animation: glitch 4s infinite;
+    text-shadow: 0 0 20px rgba(0,245,255,.6);
+    margin-bottom: 0;
+}
+
+.login-subtitle {
+    font-family: var(--font-ui);
+    font-size: .7rem;
+    text-align: center;
+    color: var(--text-dim);
+    letter-spacing: 6px;
+    margin-bottom: .25rem;
+}
+
+.login-by {
+    text-align: center;
+    font-size: .75rem;
+    color: var(--text-dim);
+    margin-bottom: 1.5rem;
+}
+.login-by span { color: var(--pink); font-family: var(--font-ui); font-size: .7rem; text-shadow: 0 0 10px var(--pink); }
+
+.login-sep {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-muted);
+    font-size: .7rem;
+    letter-spacing: 2px;
+}
+.login-sep::before,
+.login-sep::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.cyber-field { margin-bottom: 1rem; }
+.cyber-field label {
+    display: block;
+    font-size: .65rem;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    margin-bottom: .4rem;
+    font-family: var(--font-ui);
+}
+.cyber-field input {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: .9rem;
+    padding: .6rem .85rem;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+}
+.cyber-field input:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 1px var(--cyan), 0 0 15px rgba(0,245,255,.2);
+}
+.cyber-field input::placeholder { color: var(--text-muted); }
+
+.btn-cyber-login {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    font-family: var(--font-ui);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    padding: .75rem;
+    cursor: pointer;
+    transition: all .3s;
+    margin-top: .5rem;
+}
+.btn-cyber-login:hover {
+    background: rgba(0,245,255,.15);
+    color: var(--cyan);
+    box-shadow: 0 0 22px rgba(0,245,255,.5), inset 0 0 15px rgba(0,245,255,.1);
+    letter-spacing: 6px;
+}
+
+.login-error {
+    background: rgba(255,0,85,.1);
+    border: 1px solid rgba(255,0,85,.4);
+    color: var(--pink);
+    padding: .5rem .75rem;
+    font-size: .8rem;
+    margin-top: .75rem;
+    text-shadow: 0 0 8px var(--pink);
+}
+
+.login-footer-text {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: .65rem;
+    margin-top: 1.5rem;
+    letter-spacing: 2px;
+}
+.login-footer-text .blink { animation: blink 1s infinite; color: var(--green); }
+
+/* ===== NAVBAR ===== */
+.cyber-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(6,7,15,.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 0 rgba(0,245,255,.15), 0 4px 20px rgba(0,0,0,.5);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .6rem 1.25rem;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+}
+.nav-logo {
+    font-size: 1.4rem;
+    color: var(--cyan);
+    filter: drop-shadow(0 0 8px var(--cyan));
+}
+.nav-title {
+    font-family: var(--font-ui);
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    text-shadow: 0 0 10px rgba(0,245,255,.5);
+}
+.nav-title .text-pink { color: var(--pink); text-shadow: 0 0 10px rgba(255,0,85,.5); }
+.nav-by {
+    font-size: .65rem;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+}
+
+.nav-controls {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+}
+
+.cyber-badge {
+    font-family: var(--font-ui);
+    font-size: .55rem;
+    letter-spacing: 2px;
+    padding: .25rem .6rem;
+    border: 1px solid;
+    font-weight: 600;
+}
+.badge-paper  { color: var(--purple); border-color: var(--purple); background: rgba(191,95,255,.1); }
+.badge-live   { color: var(--pink);   border-color: var(--pink);   background: rgba(255,0,85,.1); }
+.badge-active  { color: var(--green);  border-color: var(--green);  background: rgba(0,255,136,.1); animation: neonPulse 2s infinite; }
+.badge-stopped { color: var(--text-dim); border-color: var(--text-dim); background: transparent; }
+
+.nav-countdown {
+    font-size: .65rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+.nav-user {
+    font-size: .65rem;
+    color: var(--text-dim);
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-nav {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: .25rem .5rem;
+    font-size: .75rem;
+    cursor: pointer;
+    transition: all .2s;
+}
+.btn-nav:hover { border-color: var(--pink); color: var(--pink); }
+
+/* ===== STAT CARDS ===== */
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 1rem 1.1rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+}
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent, var(--cyan));
+    opacity: .7;
+}
+.stat-card:hover { border-color: rgba(0,245,255,.3); }
+
+.stat-label {
+    font-family: var(--font-ui);
+    font-size: .5rem;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: .4rem;
+}
+.stat-value {
+    font-family: var(--font-ui);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--cyan);
+    text-shadow: 0 0 15px rgba(0,245,255,.4);
+    line-height: 1;
+}
+.stat-value.green  { color: var(--green);  text-shadow: 0 0 15px rgba(0,255,136,.4); }
+.stat-value.red    { color: var(--pink);   text-shadow: 0 0 15px rgba(255,0,85,.4); }
+.stat-value.yellow { color: var(--yellow); text-shadow: 0 0 15px rgba(255,215,0,.4); }
+.stat-value.purple { color: var(--purple); text-shadow: 0 0 15px rgba(191,95,255,.4); }
+.stat-value.orange { color: var(--orange); text-shadow: 0 0 15px rgba(255,107,0,.4); }
+
+/* ===== CYBER CARD ===== */
+.cyber-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    position: relative;
+}
+.cyber-card-header {
+    background: var(--bg-card2);
+    border-bottom: 1px solid var(--border);
+    padding: .6rem 1rem;
+    font-family: var(--font-ui);
+    font-size: .6rem;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.cyber-card-header i { margin-right: .5rem; }
+.cyber-card-header .header-tag {
+    font-size: .5rem;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+}
+.cyber-card-body { padding: 1rem; }
+.cyber-card-body.p-0 { padding: 0; }
+
+/* ===== BUTTONS ===== */
+.btn-cyber {
+    background: transparent;
+    border: 1px solid;
+    font-family: var(--font-ui);
+    font-size: .6rem;
+    letter-spacing: 2px;
+    padding: .55rem .85rem;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+    overflow: hidden;
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+.btn-cyber::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity .2s;
+}
+.btn-cyber:hover::before { opacity: 1; }
+
+.btn-start { border-color: var(--green); color: var(--green); }
+.btn-start::before { background: rgba(0,255,136,.1); }
+.btn-start:hover { box-shadow: 0 0 15px rgba(0,255,136,.4), inset 0 0 15px rgba(0,255,136,.1); }
+
+.btn-stop { border-color: var(--pink); color: var(--pink); }
+.btn-stop::before { background: rgba(255,0,85,.1); }
+.btn-stop:hover { box-shadow: 0 0 15px rgba(255,0,85,.4), inset 0 0 15px rgba(255,0,85,.1); }
+
+.btn-warn { border-color: var(--yellow); color: var(--yellow); }
+.btn-warn::before { background: rgba(255,215,0,.1); }
+.btn-warn:hover { box-shadow: 0 0 15px rgba(255,215,0,.3); }
+
+.btn-cyber:disabled, .btn-cyber[disabled] {
+    opacity: 0.25;
+    cursor: not-allowed;
+    pointer-events: none;
+    box-shadow: none !important;
+}
+
+.btn-primary-cyber { border-color: var(--cyan); color: var(--cyan); }
+.btn-primary-cyber:hover { box-shadow: 0 0 15px rgba(0,245,255,.4); color: var(--bg); background: var(--cyan); }
+
+.btn-sm-cyber {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    padding: .2rem .5rem;
+    cursor: pointer;
+    transition: all .2s;
+}
+.btn-sm-cyber:hover { border-color: var(--cyan); color: var(--cyan); }
+.btn-sm-cyber.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0,245,255,.1); }
+
+/* ===== SELECTS ===== */
+.cyber-select-wrap { margin-bottom: .75rem; }
+.cyber-select-wrap label {
+    display: block;
+    font-family: var(--font-ui);
+    font-size: .5rem;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: .3rem;
+}
+.cyber-select {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: .8rem;
+    padding: .4rem .6rem;
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2300f5ff'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right .6rem center;
+    cursor: pointer;
+    transition: border-color .2s;
+}
+.cyber-select:focus { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan); }
+
+/* ===== HEALTH PANEL ===== */
+.health-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .35rem 0;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    font-size: .75rem;
+}
+.health-row:last-child { border-bottom: none; }
+.health-label { color: var(--text-dim); font-size: .65rem; letter-spacing: 1px; }
+.health-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+.h-ok   { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.h-warn { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.h-err  { background: var(--pink);  box-shadow: 0 0 6px var(--pink); }
+.h-off  { background: var(--text-muted); }
+
+/* ===== TABLES ===== */
+.cyber-table { width: 100%; border-collapse: collapse; font-size: .75rem; }
+.cyber-table thead th {
+    font-family: var(--font-ui);
+    font-size: .5rem;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    padding: .5rem .75rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    background: var(--bg-card2);
+}
+.cyber-table tbody td {
+    padding: .5rem .75rem;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    color: var(--text);
+    vertical-align: middle;
+}
+.cyber-table tbody tr:hover td { background: rgba(0,245,255,.03); }
+.cyber-table tbody tr:last-child td { border-bottom: none; }
+
+.badge-buy  { background: rgba(0,255,136,.15); color: var(--green); border: 1px solid rgba(0,255,136,.3); font-size: .6rem; padding: .15rem .4rem; font-family: var(--font-ui); letter-spacing: 1px; }
+.badge-sell { background: rgba(255,0,85,.15);  color: var(--pink);  border: 1px solid rgba(255,0,85,.3);  font-size: .6rem; padding: .15rem .4rem; font-family: var(--font-ui); letter-spacing: 1px; }
+.badge-hold { background: rgba(255,215,0,.1);  color: var(--yellow); border: 1px solid rgba(255,215,0,.3); font-size: .6rem; padding: .15rem .4rem; font-family: var(--font-ui); letter-spacing: 1px; }
+
+.text-profit { color: var(--green); text-shadow: 0 0 8px rgba(0,255,136,.4); }
+.text-loss   { color: var(--pink);  text-shadow: 0 0 8px rgba(255,0,85,.4); }
+.text-cyan   { color: var(--cyan);  }
+.text-dim    { color: var(--text-dim); }
+.text-muted-cyber { color: var(--text-muted); }
+
+/* ===== LOG TERMINAL ===== */
+.log-terminal {
+    background: #000;
+    font-family: var(--font-mono);
+    font-size: .72rem;
+    max-height: 380px;
+    overflow-y: auto;
+    padding: .5rem 0;
+    border-top: 1px solid var(--border);
+}
+.log-line {
+    padding: 2px 10px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+.log-line:hover { background: rgba(255,255,255,.03); }
+.log-INFO    { color: #56b6c2; }
+.log-WARNING { color: #e5c07b; }
+.log-ERROR   { color: #e06c75; text-shadow: 0 0 6px rgba(224,108,117,.5); }
+.log-time    { color: #3d4d60; margin: 0 6px; }
+.log-msg     { color: #abb2bf; }
+
+/* ===== CYBER HR ===== */
+.cyber-hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: .75rem 0;
+}
+
+/* ===== INPUT CYBER ===== */
+.cyber-input {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: .8rem;
+    padding: .35rem .6rem;
+    outline: none;
+    width: 100%;
+    transition: border-color .2s;
+}
+.cyber-input:focus { border-color: var(--cyan); }
+
+/* ===== CHART AREA ===== */
+#pnlChart { max-height: 240px; }
+
+/* ===== SECTION DIVIDER ===== */
+.section-tag {
+    font-family: var(--font-ui);
+    font-size: .5rem;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    padding: .1rem .4rem;
+    border: 1px solid var(--border);
+    display: inline-block;
+    margin-bottom: .1rem;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--text-muted);
+    font-size: .75rem;
+    letter-spacing: 1px;
+}
+.empty-state i { font-size: 1.5rem; display: block; margin-bottom: .5rem; color: var(--border); }
+
+/* ===== OVERRIDES ===== */
+.row { --bs-gutter-x: .75rem; }
+
+/* ===== AUTOFILL FIX ===== */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--text) !important;
+    -webkit-box-shadow: 0 0 0px 1000px var(--bg-input) inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: var(--cyan);
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 767px) {
+
+    /* --- Login --- */
+    .login-wrap {
+        padding: 1rem;
+        align-items: flex-start;
+        padding-top: 2.5rem;
+    }
+    .login-card {
+        width: 100%;
+        max-width: 100%;
+        padding: 1.75rem 1.25rem 1.5rem;
+    }
+    .login-icon { font-size: 2.25rem; margin-bottom: .5rem; }
+    .login-title { font-size: 1.25rem; letter-spacing: 3px; }
+    .login-subtitle { letter-spacing: 4px; font-size: .65rem; }
+    .login-by { margin-bottom: 1rem; }
+    .login-sep { font-size: .6rem; margin-bottom: 1rem; }
+    .cyber-field { margin-bottom: .75rem; }
+    .cyber-field input { font-size: .85rem; padding: .55rem .75rem; }
+    .btn-cyber-login { padding: .65rem; font-size: .7rem; }
+
+    /* --- Navbar: two-row compact --- */
+    .cyber-nav {
+        flex-direction: column;
+        gap: .35rem;
+        padding: .5rem .75rem;
+        align-items: stretch;
+    }
+    .nav-brand {
+        justify-content: center;
+        gap: .35rem;
+    }
+    .nav-by { display: none; }
+    .nav-controls {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: .35rem;
+    }
+    .nav-user { display: none; }
+    .nav-countdown { font-size: .6rem; }
+    .cyber-badge { font-size: .5rem; padding: .2rem .45rem; }
+
+    /* --- Dashboard container --- */
+    .container-fluid.p-3 { padding: .5rem !important; }
+    .mb-3 { margin-bottom: .5rem !important; }
+
+    /* --- Stat cards: 3-across on phone --- */
+    .stat-card { padding: .6rem .65rem; }
+    .stat-value { font-size: 1.1rem; }
+    .stat-label { font-size: .42rem; letter-spacing: 2px; }
+
+    /* --- Cards --- */
+    .cyber-card-header {
+        font-size: .52rem;
+        padding: .45rem .75rem;
+        flex-wrap: wrap;
+        gap: .25rem;
+    }
+    .cyber-card-body { padding: .75rem; }
+
+    /* --- Buttons --- */
+    .btn-cyber { font-size: .55rem; padding: .5rem .6rem; letter-spacing: 1px; }
+    .btn-sm-cyber { font-size: .62rem; padding: .18rem .4rem; }
+
+    /* --- Tables --- */
+    .cyber-table { font-size: .68rem; }
+    .cyber-table thead th { font-size: .42rem; padding: .4rem .5rem; }
+    .cyber-table tbody td { padding: .4rem .5rem; }
+
+    /* --- Log terminal --- */
+    .log-terminal { font-size: .66rem; max-height: 280px; }
+
+    /* --- Health rows --- */
+    .health-row { font-size: .7rem; }
+
+    /* --- Selects --- */
+    .cyber-select { font-size: .75rem; }
+    .cyber-select-wrap label { font-size: .45rem; }
+}
+
+@media (max-width: 400px) {
+    .login-title { font-size: 1.1rem; letter-spacing: 2px; }
+    .stat-value { font-size: .95rem; }
+    .cyber-card-header .header-tag { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== LOGIN ==================== -->
+<div id="loginPage" class="login-wrap">
+    <div class="login-card">
+        <div class="bc"></div>
+        <div class="login-icon">🤖</div>
+        <div class="login-title">BOT TRADING</div>
+        <div class="login-subtitle">MYTHOS</div>
+        <div class="login-by">powered by <span>MyDios</span></div>
+
+        <div class="login-sep">// AUTHENTICATION REQUIRED //</div>
+
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="cyber-field">
+                <label>▸ EMAIL_ADDRESS</label>
+                <input type="email" id="loginEmail" placeholder="user@domain.com" required autocomplete="email">
+            </div>
+            <div class="cyber-field">
+                <label>▸ PASSPHRASE</label>
+                <input type="password" id="loginPassword" placeholder="••••••••••••" required>
+            </div>
+            <button type="submit" class="btn-cyber-login">
+                AUTHENTICATE &nbsp;›
+            </button>
+        </form>
+
+        <div id="loginError" class="login-error" style="display:none;"></div>
+
+        <div class="login-footer-text">
+            <span class="blink">█</span> SECURE ENCRYPTED CONNECTION
+        </div>
+    </div>
+</div>
+
+<!-- ==================== DASHBOARD ==================== -->
+<div id="dashboardPage" style="display:none;">
+
+<!-- NAVBAR -->
+<nav class="cyber-nav">
+    <div class="nav-brand">
+        <span class="nav-logo">🤖</span>
+        <span class="nav-title">BOT TRADING <span class="text-pink">MYTHOS</span></span>
+        <span class="nav-by">// by MyDios</span>
+    </div>
+    <div class="nav-controls">
+        <span id="modeIndicator" class="cyber-badge badge-paper">◈ PAPER</span>
+        <span id="statusIndicator" class="cyber-badge badge-stopped">◉ STOPPED</span>
+        <span class="nav-countdown">⟳ <span id="countdown">15</span>s</span>
+        <span id="userEmail" class="nav-user"></span>
+        <button class="btn-nav" onclick="logout()" title="Logout"><i class="bi bi-box-arrow-right"></i></button>
+    </div>
+</nav>
+
+<div class="container-fluid p-3" style="position:relative;z-index:10;">
+
+<!-- ── STAT CARDS ── -->
+<div class="row g-2 mb-3">
+    <div class="col-md-2 col-6">
+        <div class="stat-card" style="--accent:var(--cyan)">
+            <div class="stat-label">Balance USDT</div>
+            <div class="stat-value" id="balance">—</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="stat-card" style="--accent:var(--yellow)">
+            <div class="stat-label">Today Trades</div>
+            <div class="stat-value yellow" id="todayTrades">0</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="stat-card" style="--accent:var(--purple)">
+            <div class="stat-label">Win Rate</div>
+            <div class="stat-value purple" id="winRate">0%</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="stat-card" style="--accent:var(--green)">
+            <div class="stat-label">Today PnL</div>
+            <div class="stat-value green" id="todayPnl">0.00</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="stat-card" style="--accent:var(--purple)">
+            <div class="stat-label">Strategy</div>
+            <div class="stat-value" id="strategyName" style="font-size:.85rem;letter-spacing:1px;">—</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="stat-card" style="--accent:var(--orange)">
+            <div class="stat-label">Errors</div>
+            <div class="stat-value orange" id="errorCount">0</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── HEALTH + CONTROL + CHART ── -->
+<div class="row g-3 mb-3">
+    <!-- System Health -->
+    <div class="col-md-4">
+        <div class="cyber-card h-100">
+            <div class="cyber-card-header">
+                <span><i class="bi bi-heart-pulse"></i>SYSTEM HEALTH</span>
+                <span class="header-tag">// LIVE //</span>
+            </div>
+            <div class="cyber-card-body" id="healthPanel">
+                <div class="empty-state"><i class="bi bi-hourglass-split"></i>Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bot Control -->
+    <div class="col-md-4">
+        <div class="cyber-card h-100">
+            <div class="cyber-card-header">
+                <span><i class="bi bi-cpu"></i>BOT CONTROL</span>
+                <span class="header-tag">// COMMAND //</span>
+            </div>
+            <div class="cyber-card-body">
+                <div class="d-grid gap-2 mb-2">
+                    <button id="startBtn" class="btn-cyber btn-start" onclick="controlBot('start')">
+                        <i class="bi bi-play-fill"></i> &nbsp;START ENGINE
+                    </button>
+                    <button id="stopBtn" class="btn-cyber btn-stop" onclick="controlBot('stop')">
+                        <i class="bi bi-stop-fill"></i> &nbsp;HALT ENGINE
+                    </button>
+                </div>
+                <div id="uptimeBar" style="display:none;text-align:center;padding:4px 0 8px;font-size:.7rem;color:var(--text-dim);letter-spacing:1px;">
+                    ⏱ UPTIME &nbsp;<span id="uptimeDisplay" style="color:var(--green);font-weight:bold;">00:00:00</span>
+                </div>
+                <div class="cyber-hr"></div>
+                <div class="cyber-select-wrap">
+                    <label>▸ TRADING MODE</label>
+                    <select class="cyber-select" id="modeSelect" onchange="changeMode()">
+                        <option value="paper">◈ PAPER TRADING</option>
+                        <option value="live">⚡ LIVE TRADING</option>
+                    </select>
+                </div>
+                <div class="cyber-select-wrap">
+                    <label>▸ STRATEGY</label>
+                    <select class="cyber-select" id="strategySelect" onchange="changeStrategy()"></select>
+                </div>
+                <div class="cyber-hr"></div>
+                <button class="btn-cyber btn-warn" onclick="clearEmergency()">
+                    <i class="bi bi-exclamation-triangle"></i> &nbsp;CLEAR EMERGENCY STOP
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PnL Chart -->
+    <div class="col-md-4">
+        <div class="cyber-card h-100">
+            <div class="cyber-card-header">
+                <span><i class="bi bi-graph-up"></i>EQUITY CURVE</span>
+                <span class="header-tag">// 14D //</span>
+            </div>
+            <div class="cyber-card-body">
+                <canvas id="pnlChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── POSITIONS + TRADES ── -->
+<div class="row g-3 mb-3">
+    <div class="col-md-5">
+        <div class="cyber-card">
+            <div class="cyber-card-header">
+                <span><i class="bi bi-wallet2"></i>OPEN POSITIONS</span>
+                <span class="header-tag">// LIVE //</span>
+            </div>
+            <div class="cyber-card-body p-0">
+                <div style="overflow-x:auto;">
+                    <table class="cyber-table">
+                        <thead><tr><th>PAIR</th><th>ENTRY</th><th>CURRENT</th><th>PNL</th><th>SL/TP</th></tr></thead>
+                        <tbody id="positionsTable">
+                            <tr><td colspan="5"><div class="empty-state"><i class="bi bi-dash-circle"></i>No open positions</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="cyber-card">
+            <div class="cyber-card-header">
+                <span><i class="bi bi-clock-history"></i>RECENT TRADES</span>
+                <span class="header-tag">// HISTORY //</span>
+            </div>
+            <div class="cyber-card-body p-0">
+                <div style="max-height:320px;overflow-y:auto;">
+                    <table class="cyber-table">
+                        <thead><tr><th>TIME</th><th>PAIR</th><th>SIDE</th><th>PRICE</th><th>QTY</th><th>PNL</th></tr></thead>
+                        <tbody id="tradesTable">
+                            <tr><td colspan="6"><div class="empty-state"><i class="bi bi-dash-circle"></i>No trades yet</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── SIGNALS + LOGS ── -->
+<div class="row g-3 mb-3">
+    <div class="col-md-5">
+        <div class="cyber-card">
+            <div class="cyber-card-header">
+                <span><i class="bi bi-broadcast"></i>SIGNALS</span>
+                <span class="header-tag">// STREAM //</span>
+            </div>
+            <div class="cyber-card-body p-0">
+                <div style="max-height:320px;overflow-y:auto;">
+                    <table class="cyber-table">
+                        <thead><tr><th>TIME</th><th>PAIR</th><th>ACTION</th><th>CONF</th><th>EXEC</th></tr></thead>
+                        <tbody id="signalsTable">
+                            <tr><td colspan="5"><div class="empty-state"><i class="bi bi-dash-circle"></i>No signals</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="cyber-card">
+            <div class="cyber-card-header">
+                <span><i class="bi bi-terminal"></i>SYSTEM LOG</span>
+                <div style="display:flex;gap:.4rem;">
+                    <button class="btn-sm-cyber active" id="logBtnAll" onclick="filterLog(this,'')">ALL</button>
+                    <button class="btn-sm-cyber" id="logBtnInfo" onclick="filterLog(this,'INFO')">INFO</button>
+                    <button class="btn-sm-cyber" id="logBtnWarn" onclick="filterLog(this,'WARNING')">WARN</button>
+                    <button class="btn-sm-cyber" id="logBtnErr" onclick="filterLog(this,'ERROR')">ERR</button>
+                </div>
+            </div>
+            <div class="log-terminal" id="logsContainer">
+                <div class="log-line log-msg">Waiting for logs...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── BACKTEST ── -->
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="cyber-card">
+            <div class="cyber-card-header">
+                <span><i class="bi bi-speedometer2"></i>BACKTESTING</span>
+                <span class="header-tag">// SIMULATION //</span>
+            </div>
+            <div class="cyber-card-body">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-2 col-6">
+                        <label class="cyber-select-wrap" style="display:block;">
+                            <label class="d-block" style="font-family:var(--font-ui);font-size:.5rem;letter-spacing:2px;color:var(--text-muted);">▸ PAIR</label>
+                            <input class="cyber-input" id="btPair" value="BTCUSDT">
+                        </label>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <div class="cyber-select-wrap">
+                            <label>▸ TIMEFRAME</label>
+                            <select class="cyber-select" id="btTimeframe">
+                                <option value="1m">1m</option><option value="5m">5m</option>
+                                <option value="15m">15m</option><option value="1h" selected>1h</option>
+                                <option value="4h">4h</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <div class="cyber-select-wrap">
+                            <label>▸ STRATEGY</label>
+                            <select class="cyber-select" id="btStrategy">
+                                <option value="ema_crossover">EMA Crossover</option>
+                                <option value="multi_timeframe">Multi TF</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <label class="cyber-select-wrap" style="display:block;">
+                            <label class="d-block" style="font-family:var(--font-ui);font-size:.5rem;letter-spacing:2px;color:var(--text-muted);">▸ DAYS</label>
+                            <input class="cyber-input" type="number" id="btDays" value="30" min="7" max="90">
+                        </label>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <label class="cyber-select-wrap" style="display:block;">
+                            <label class="d-block" style="font-family:var(--font-ui);font-size:.5rem;letter-spacing:2px;color:var(--text-muted);">▸ INIT BALANCE</label>
+                            <input class="cyber-input" type="number" id="btBalance" value="10000">
+                        </label>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <button class="btn-cyber btn-primary-cyber" onclick="runBacktest()" id="btBtn" style="margin-top:.1rem;">
+                            <i class="bi bi-play-fill"></i> &nbsp;RUN SIM
+                        </button>
+                    </div>
+                </div>
+                <div id="btResults" class="mt-3" style="display:none;">
+                    <div class="row g-3">
+                        <div class="col-md-8"><canvas id="btChart" height="200"></canvas></div>
+                        <div class="col-md-4"><div id="btMetrics"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div><!-- /container -->
+</div><!-- /dashboardPage -->
+
+<script>
+const API = '';
+let pnlChart = null;
+let btChart = null;
+let refreshInterval = null;
+let countdownVal = 15;
+let authToken = localStorage.getItem('authToken');
+let currentUser = null;
+
+// ==================== AUTH ====================
+function getAuthHeaders() {
+    const h = { 'Content-Type': 'application/json' };
+    if (authToken) h['Authorization'] = 'Bearer ' + authToken;
+    return h;
+}
+
+async function fetchJSON(url) {
+    try {
+        const res = await fetch(API + url, { headers: getAuthHeaders() });
+        if (res.status === 401) { logout(); return null; }
+        return await res.json();
+    } catch (e) { console.error('Fetch error:', url, e); return null; }
+}
+
+async function fetchPost(url, body = {}) {
+    try {
+        const res = await fetch(API + url, {
+            method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body),
+        });
+        if (res.status === 401) { logout(); return null; }
+        const data = await res.json();
+        return { ok: res.ok, ...data, message: data.message || data.detail || (res.ok ? 'Done' : 'Unknown error') };
+    } catch (e) {
+        return { ok: false, message: 'Network error: ' + e.message };
+    }
+}
+
+async function handleLogin(event) {
+    event.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorEl = document.getElementById('loginError');
+    try {
+        const res = await fetch(API + '/auth/login', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (res.ok && data.access_token) {
+            authToken = data.access_token;
+            localStorage.setItem('authToken', authToken);
+            currentUser = data.user;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            errorEl.style.display = 'none';
+            showDashboard();
+        } else {
+            errorEl.textContent = '⚠ ' + (data.detail || 'Invalid credentials');
+            errorEl.style.display = 'block';
+        }
+    } catch (e) {
+        errorEl.textContent = '⚠ Network error: ' + e.message;
+        errorEl.style.display = 'block';
+    }
+}
+
+function logout() {
+    authToken = null; currentUser = null;
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    if (refreshInterval) clearInterval(refreshInterval);
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('dashboardPage').style.display = 'none';
+}
+
+function showDashboard() {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('dashboardPage').style.display = 'block';
+    if (currentUser) document.getElementById('userEmail').textContent = currentUser.email;
+    const savedMode = localStorage.getItem('tradingMode');
+    if (savedMode) document.getElementById('modeSelect').value = savedMode;
+    startAutoRefresh();
+}
+
+async function checkAuth() {
+    if (authToken) {
+        const data = await fetchJSON('/auth/me');
+        if (data && data.authenticated) {
+            currentUser = data.user || JSON.parse(localStorage.getItem('currentUser') || '{}');
+            showDashboard(); return;
+        }
+    }
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('dashboardPage').style.display = 'none';
+}
+
+// ==================== HEALTH ====================
+async function loadHealth() {
+    const data = await fetchJSON('/api/health/status');
+    if (!data) return;
+    const panel = document.getElementById('healthPanel');
+    const c = data.components || {};
+
+    const dotCls = s => s === 'healthy' || s === 'connected' || s === 'configured' || s === 'running' ? 'h-ok'
+                      : s === 'degraded' ? 'h-warn' : s ? 'h-err' : 'h-off';
+
+    const row = (label, val, cls) =>
+        `<div class="health-row"><span class="health-label">${label}</span>
+         <small><span class="health-dot ${cls}"></span>${val}</small></div>`;
+
+    const eng = c.trading_engine || {};
+    const bin = c.binance_api || {};
+    const fon = c.fonnte || {};
+    const risk = c.risk_manager || {};
+    const perf = c.performance || {};
+    const sys = c.system || {};
+
+    let html = `<div class="health-row"><small><span class="health-dot ${dotCls(data.overall)}"></span></small>
+        <small style="font-family:var(--font-ui);font-size:.6rem;letter-spacing:2px;color:var(--cyan);">
+            OVERALL: ${(data.overall||'UNKNOWN').toUpperCase()}</small></div>
+        <div class="cyber-hr"></div>`;
+    html += row('TRADING ENGINE', (eng.status||'—').toUpperCase(), dotCls(eng.status));
+    html += row('BINANCE API', (bin.status||'—').toUpperCase(), dotCls(bin.status));
+    html += row('FONNTE (WA)', (fon.status||'—').toUpperCase(), dotCls(fon.status));
+    html += `<div class="cyber-hr"></div>`;
+    html += row('EMERGENCY STOP', risk.emergency_stop ? 'ACTIVE' : 'OFF', risk.emergency_stop ? 'h-err' : 'h-ok');
+    html += row('ERRORS TODAY', `${risk.error_count||0} / ${risk.max_errors||10}`, (risk.error_count||0) > 0 ? 'h-warn' : 'h-ok');
+    html += row('DRAWDOWN', `${perf.drawdown_pct||0}%`, perf.drawdown_pct > 5 ? 'h-err' : 'h-ok');
+    if (sys.cpu_percent !== undefined) {
+        html += `<div class="cyber-hr"></div>`;
+        html += row('CPU', `${sys.cpu_percent}%`, sys.cpu_percent > 80 ? 'h-err' : sys.cpu_percent > 50 ? 'h-warn' : 'h-ok');
+        html += row('MEMORY', `${sys.memory_percent}% (${sys.memory_used_mb}MB)`, sys.memory_percent > 80 ? 'h-err' : 'h-ok');
+    }
+    panel.innerHTML = html;
+}
+
+// ==================== DATA ====================
+async function loadStats() {
+    const data = await fetchJSON('/api/stats');
+    if (!data) return;
+
+    document.getElementById('balance').textContent =
+        parseFloat(data.balance).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+    const mode = data.mode;
+    const modeEl = document.getElementById('modeIndicator');
+    modeEl.textContent = mode === 'live' ? '⚡ LIVE' : '◈ PAPER';
+    modeEl.className = 'cyber-badge ' + (mode === 'live' ? 'badge-live' : 'badge-paper');
+
+    const modeSelect = document.getElementById('modeSelect');
+    if (modeSelect.value !== mode) modeSelect.value = mode;
+    localStorage.setItem('tradingMode', mode);
+
+    const statusEl = document.getElementById('statusIndicator');
+    statusEl.textContent = data.bot_active ? '◉ RUNNING' : '◉ STOPPED';
+    statusEl.className = 'cyber-badge ' + (data.bot_active ? 'badge-active' : 'badge-stopped');
+
+    _updateEngineButtons(data.bot_active);
+    if (data.bot_active) {
+        if (!_engineStartTime) _engineStartTime = Date.now();
+        if (!_uptimeInterval) _startUptimeClock();
+    } else {
+        _stopUptimeClock();
+    }
+
+    const strat = (data.strategy || '').replace(/_/g, ' ').toUpperCase();
+    document.getElementById('strategyName').textContent = strat;
+
+    const errEl = document.getElementById('errorCount');
+    errEl.textContent = data.risk.error_count;
+    errEl.className = 'stat-value ' + (data.risk.error_count > 0 ? 'red' : 'orange');
+
+    if (data.today) {
+        document.getElementById('todayTrades').textContent = data.today.total_trades;
+        document.getElementById('winRate').textContent = data.today.win_rate + '%';
+        const pnl = data.today.net_profit;
+        const pnlEl = document.getElementById('todayPnl');
+        pnlEl.textContent = (pnl >= 0 ? '+' : '') + pnl.toFixed(2);
+        pnlEl.className = 'stat-value ' + (pnl >= 0 ? 'green' : 'red');
+    }
+}
+
+async function loadPositions() {
+    const data = await fetchJSON('/api/positions');
+    if (!data) return;
+    const tbody = document.getElementById('positionsTable');
+    if (!data.positions || !data.positions.length) {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="bi bi-dash-circle"></i>No open positions</div></td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.positions.map(p => {
+        const cls = p.unrealized_pnl >= 0 ? 'text-profit' : 'text-loss';
+        const s = p.unrealized_pnl >= 0 ? '+' : '';
+        return `<tr>
+            <td><strong style="color:var(--cyan)">${p.pair}</strong></td>
+            <td>${parseFloat(p.entry_price).toFixed(2)}</td>
+            <td>${p.current_price ? parseFloat(p.current_price).toFixed(2) : '—'}</td>
+            <td class="${cls}">${s}${p.unrealized_pnl.toFixed(2)} (${s}${p.unrealized_pnl_pct.toFixed(1)}%)</td>
+            <td><span style="color:var(--pink)">${p.stop_loss ? parseFloat(p.stop_loss).toFixed(2) : '—'}</span>
+                / <span style="color:var(--green)">${p.take_profit ? parseFloat(p.take_profit).toFixed(2) : '—'}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+async function loadTrades() {
+    const data = await fetchJSON('/api/trades?limit=30');
+    if (!data) return;
+    const tbody = document.getElementById('tradesTable');
+    if (!data.trades || !data.trades.length) {
+        tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="bi bi-dash-circle"></i>No trades yet</div></td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.trades.map(t => {
+        const bdg = t.side === 'BUY' ? 'badge-buy' : 'badge-sell';
+        let pnlHtml = '<span class="text-dim">—</span>';
+        if (t.pnl !== null) {
+            const cls = t.pnl >= 0 ? 'text-profit' : 'text-loss';
+            pnlHtml = `<span class="${cls}">${t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}</span>`;
+        }
+        const time = t.created_at ? new Date(t.created_at).toLocaleString() : '—';
+        return `<tr>
+            <td style="color:var(--text-dim);font-size:.7rem">${time}</td>
+            <td style="color:var(--cyan)">${t.pair}</td>
+            <td><span class="${bdg}">${t.side}</span></td>
+            <td>${parseFloat(t.price).toFixed(2)}</td>
+            <td style="color:var(--text-dim)">${parseFloat(t.quantity).toFixed(6)}</td>
+            <td>${pnlHtml}</td>
+        </tr>`;
+    }).join('');
+}
+
+async function loadSignals() {
+    const data = await fetchJSON('/api/signals?limit=20');
+    if (!data) return;
+    const tbody = document.getElementById('signalsTable');
+    if (!data.signals || !data.signals.length) {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="bi bi-dash-circle"></i>No signals</div></td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.signals.map(s => {
+        const cls = s.action === 'BUY' ? 'badge-buy' : s.action === 'SELL' ? 'badge-sell' : 'badge-hold';
+        const time = s.created_at ? new Date(s.created_at).toLocaleString() : '—';
+        const conf = s.confidence !== null ? s.confidence.toFixed(0) + '%' : '—';
+        const exec = s.executed
+            ? '<span style="color:var(--green)">✓</span>'
+            : '<span style="color:var(--text-muted)">—</span>';
+        return `<tr>
+            <td style="color:var(--text-dim);font-size:.7rem">${time}</td>
+            <td style="color:var(--cyan)">${s.pair}</td>
+            <td><span class="${cls}">${s.action}</span></td>
+            <td>${conf}</td><td>${exec}</td>
+        </tr>`;
+    }).join('');
+}
+
+async function loadLogs(level = null) {
+    const url = level ? `/api/logs?level=${level}&limit=80` : '/api/logs?limit=80';
+    const data = await fetchJSON(url);
+    if (!data) return;
+    const container = document.getElementById('logsContainer');
+    if (!data.logs || !data.logs.length) {
+        container.innerHTML = '<div class="log-line text-dim">No logs found.</div>';
+        return;
+    }
+    container.innerHTML = data.logs.map(l => {
+        const time = l.created_at ? new Date(l.created_at).toLocaleTimeString() : '';
+        return `<div class="log-line"><span class="log-${l.level}">[${l.level}]</span><span class="log-time">${time}</span><span class="log-msg">${l.message}</span></div>`;
+    }).join('');
+    container.scrollTop = 0;
+}
+
+function filterLog(btn, level) {
+    document.querySelectorAll('.btn-sm-cyber').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadLogs(level || null);
+}
+
+async function loadPerformanceChart() {
+    const data = await fetchJSON('/api/performance?report_type=daily&limit=14');
+    if (!data || !data.performance || !data.performance.length) return;
+    const sorted = [...data.performance].reverse();
+    const labels = sorted.map(p => p.report_date);
+    const profits = sorted.map(p => p.net_profit);
+    let sum = 0;
+    const cumulative = profits.map(p => parseFloat((sum += p).toFixed(2)));
+    const ctx = document.getElementById('pnlChart').getContext('2d');
+    if (pnlChart) pnlChart.destroy();
+    pnlChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Cumulative PnL',
+                data: cumulative,
+                borderColor: '#00f5ff',
+                backgroundColor: 'rgba(0,245,255,0.08)',
+                fill: true, tension: 0.3, pointRadius: 2, borderWidth: 1.5,
+            }, {
+                label: 'Daily PnL', type: 'bar',
+                data: profits,
+                backgroundColor: profits.map(v => v >= 0 ? 'rgba(0,255,136,0.4)' : 'rgba(255,0,85,0.4)'),
+                borderRadius: 2,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#556070', font: { family: 'Share Tech Mono', size: 10 } } } },
+            scales: {
+                x: { ticks: { color: '#3d4d60', font: { family: 'Share Tech Mono', size: 9 } }, grid: { color: 'rgba(26,31,53,0.8)' } },
+                y: { ticks: { color: '#3d4d60', font: { family: 'Share Tech Mono', size: 9 } }, grid: { color: 'rgba(26,31,53,0.8)' } }
+            }
+        }
+    });
+}
+
+async function loadStrategies() {
+    const data = await fetchJSON('/api/strategies');
+    if (!data) return;
+    const select = document.getElementById('strategySelect');
+    select.innerHTML = data.available.map(s =>
+        `<option value="${s}" ${s === data.active ? 'selected' : ''}>◈ ${s.replace(/_/g,' ').toUpperCase()}</option>`
+    ).join('');
+}
+
+// ==================== CONTROLS ====================
+const SWAL_OPTS = { background: '#0b0d1a', color: '#c8d8f0', confirmButtonColor: '#00f5ff' };
+
+let _uptimeInterval = null;
+let _engineStartTime = null;
+
+function _startUptimeClock() {
+    const bar = document.getElementById('uptimeBar');
+    const disp = document.getElementById('uptimeDisplay');
+    if (!_engineStartTime) _engineStartTime = Date.now();
+    if (bar) bar.style.display = 'block';
+    if (_uptimeInterval) clearInterval(_uptimeInterval);
+    _uptimeInterval = setInterval(() => {
+        const s = Math.floor((Date.now() - _engineStartTime) / 1000);
+        const h = String(Math.floor(s / 3600)).padStart(2, '0');
+        const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+        const sc = String(s % 60).padStart(2, '0');
+        if (disp) disp.textContent = `${h}:${m}:${sc}`;
+    }, 1000);
+}
+
+function _stopUptimeClock() {
+    if (_uptimeInterval) { clearInterval(_uptimeInterval); _uptimeInterval = null; }
+    _engineStartTime = null;
+    const bar = document.getElementById('uptimeBar');
+    const disp = document.getElementById('uptimeDisplay');
+    if (bar) bar.style.display = 'none';
+    if (disp) disp.textContent = '00:00:00';
+}
+
+function _updateEngineButtons(isActive) {
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    if (startBtn) startBtn.disabled = isActive;
+    if (stopBtn) stopBtn.disabled = !isActive;
+}
+
+async function controlBot(action) {
+    const data = await fetchPost(`/api/bot/${action}`);
+    if (!data) return;
+    Swal.fire({
+        ...SWAL_OPTS,
+        icon: data.ok ? 'success' : 'error',
+        title: data.ok ? 'SUCCESS' : 'ERROR',
+        text: data.message,
+        timer: 2500, showConfirmButton: false,
+    });
+    if (data.ok) {
+        if (action === 'start') { _engineStartTime = Date.now(); }
+        else { _stopUptimeClock(); }
+    }
+    loadStats();
+}
+
+async function changeMode() {
+    const mode = document.getElementById('modeSelect').value;
+    const savedMode = localStorage.getItem('tradingMode') || 'paper';
+    if (mode === 'live') {
+        const r = await Swal.fire({
+            ...SWAL_OPTS,
+            icon: 'warning',
+            title: '⚡ LIVE MODE',
+            text: 'Real funds will be used. Make sure the bot is stopped first.',
+            showCancelButton: true,
+            confirmButtonText: 'CONFIRM',
+            cancelButtonText: 'CANCEL',
+            confirmButtonColor: '#ff0055',
+        });
+        if (!r.isConfirmed) {
+            document.getElementById('modeSelect').value = savedMode;
+            return;
+        }
+    }
+    const data = await fetchPost('/api/bot/mode', { mode });
+    if (!data) return;
+    if (data.ok) {
+        localStorage.setItem('tradingMode', mode);
+        Swal.fire({ ...SWAL_OPTS, icon: 'success', title: 'MODE SET', text: data.message, timer: 2000, showConfirmButton: false });
+    } else {
+        Swal.fire({ ...SWAL_OPTS, icon: 'error', title: 'FAILED', text: data.message });
+        document.getElementById('modeSelect').value = savedMode;
+    }
+    loadStats();
+}
+
+async function changeStrategy() {
+    const strategy = document.getElementById('strategySelect').value;
+    const data = await fetchPost('/api/strategy/set', { strategy });
+    if (!data) return;
+    Swal.fire({ ...SWAL_OPTS, icon: data.ok ? 'success' : 'error', title: data.ok ? 'STRATEGY SET' : 'ERROR', text: data.message, timer: 2000, showConfirmButton: false });
+    loadStats();
+}
+
+async function clearEmergency() {
+    const data = await fetchPost('/api/emergency/clear');
+    if (!data) return;
+    Swal.fire({ ...SWAL_OPTS, icon: data.ok ? 'success' : 'error', title: data.ok ? 'CLEARED' : 'ERROR', text: data.message, timer: 2000, showConfirmButton: false });
+    loadStats(); loadHealth();
+}
+
+// ==================== BACKTEST ====================
+async function runBacktest() {
+    const btn = document.getElementById('btBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> SIMULATING...';
+    const body = {
+        pair: document.getElementById('btPair').value,
+        timeframe: document.getElementById('btTimeframe').value,
+        strategy: document.getElementById('btStrategy').value,
+        days: parseInt(document.getElementById('btDays').value),
+        initial_balance: parseFloat(document.getElementById('btBalance').value),
+    };
+    try {
+        const data = await fetchPost('/api/backtest/run', body);
+        if (data && data.status === 'ok') showBacktestResults(data.results);
+        else Swal.fire({ ...SWAL_OPTS, icon: 'error', title: 'SIM ERROR', text: data?.message || 'Unknown error' });
+    } catch (e) {
+        Swal.fire({ ...SWAL_OPTS, icon: 'error', title: 'FAILED', text: e.message });
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-play-fill"></i> &nbsp;RUN SIM';
+}
+
+function showBacktestResults(r) {
+    document.getElementById('btResults').style.display = 'block';
+    const pc = r.net_profit >= 0 ? 'text-profit' : 'text-loss';
+    document.getElementById('btMetrics').innerHTML = `
+        <table class="cyber-table">
+            <tr><td class="text-dim">TOTAL TRADES</td><td><strong>${r.total_trades}</strong></td></tr>
+            <tr><td class="text-dim">WIN RATE</td><td><strong>${r.win_rate}%</strong></td></tr>
+            <tr><td class="text-dim">NET PROFIT</td><td class="${pc}"><strong>${r.net_profit >= 0 ? '+' : ''}${r.net_profit.toFixed(2)} USDT (${r.net_profit_pct}%)</strong></td></tr>
+            <tr><td class="text-dim">PROFIT FACTOR</td><td>${r.profit_factor}</td></tr>
+            <tr><td class="text-dim">MAX DRAWDOWN</td><td class="text-loss">${r.max_drawdown_pct}%</td></tr>
+            <tr><td class="text-dim">SHARPE RATIO</td><td>${r.sharpe_ratio}</td></tr>
+            <tr><td class="text-dim">FINAL BALANCE</td><td style="color:var(--cyan)">${r.final_balance.toLocaleString()} USDT</td></tr>
+        </table>`;
+    if (r.equity_curve && r.equity_curve.length) {
+        const vals = r.equity_curve.map(e => e.equity);
+        const ctx = document.getElementById('btChart').getContext('2d');
+        if (btChart) btChart.destroy();
+        btChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: vals.map((_,i)=>i), datasets: [{ label: 'Equity', data: vals,
+                borderColor: r.net_profit >= 0 ? '#00ff88' : '#ff0055',
+                backgroundColor: r.net_profit >= 0 ? 'rgba(0,255,136,.08)' : 'rgba(255,0,85,.08)',
+                fill: true, tension: 0.2, pointRadius: 0, borderWidth: 1.5 }] },
+            options: { responsive: true,
+                plugins: { legend: { labels: { color: '#556070', font: { family: 'Share Tech Mono', size: 10 } } } },
+                scales: { x: { display: false }, y: { ticks: { color: '#3d4d60', font: { family: 'Share Tech Mono', size: 9 } }, grid: { color: 'rgba(26,31,53,.8)' } } } }
+        });
+    }
+}
+
+// ==================== AUTO REFRESH ====================
+async function refreshAll() {
+    await Promise.all([loadStats(), loadPositions(), loadTrades(), loadSignals(), loadLogs(), loadPerformanceChart(), loadHealth()]);
+}
+
+function startAutoRefresh() {
+    refreshAll();
+    loadStrategies();
+    countdownVal = 15;
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(() => {
+        countdownVal--;
+        document.getElementById('countdown').textContent = countdownVal;
+        if (countdownVal <= 0) { countdownVal = 15; refreshAll(); }
+    }, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', checkAuth);
+</script>
+</body>
+</html>
