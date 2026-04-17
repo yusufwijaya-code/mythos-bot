@@ -47,6 +47,7 @@ class PairScanner:
                 if (
                     symbol.endswith("USDT")
                     and symbol not in self.EXCLUDED
+                    and symbol.isascii()  # exclude Chinese/Unicode pairs (causes -1022 signature error)
                     and float(t.get("quoteVolume", 0)) >= min_volume
                 ):
                     usdt_pairs.append({

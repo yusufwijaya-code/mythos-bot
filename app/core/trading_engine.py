@@ -316,6 +316,16 @@ class TradingEngine:
                 logger.warning(f"[{pair}] No {base_asset} balance available to sell, skipping")
                 return
 
+            # Check minimum notional for SELL — if too low, don't error (price may recover)
+            min_notional = self.binance.get_min_notional(pair)
+            order_value = quantity * price
+            if order_value < min_notional:
+                logger.warning(
+                    f"[{pair}] SELL value {order_value:.4f} USDT below "
+                    f"min notional {min_notional} USDT — holding position, not an error"
+                )
+                return  # Not an error — wait for price to recover
+
         # Execute order
         if self.is_paper:
             order = self.paper.place_order(pair, "SELL", quantity, price)
