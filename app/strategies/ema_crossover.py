@@ -72,7 +72,8 @@ class EMACrossoverStrategy(BaseStrategy):
         vol_ratio = float(last.get("volume_ratio", 1))
 
         # BUY conditions
-        ema_bullish = last.get("ema_crossover_signal", 0) == 1
+        # Use EMA position state (fast > slow), not just the rare crossover event
+        ema_bullish = last.get("ema_crossover", 0) == 1  # fast EMA currently above slow
         price_above_200ema = close_price > ema_200 if ema_200 > 0 else True
         rsi_momentum = 45.0 <= rsi_val <= 65.0  # Rising momentum zone
         macd_positive = macd_hist > 0
@@ -80,17 +81,17 @@ class EMACrossoverStrategy(BaseStrategy):
         volume_ok = vol_ratio >= 1.1
 
         # SELL conditions
-        ema_bearish = last.get("ema_crossover_signal", 0) == -1
+        ema_bearish = last.get("ema_crossover", 0) == 0  # fast EMA currently below slow
         rsi_overbought = rsi_val > self.rsi.overbought
         macd_turning_neg = macd_hist < 0 and prev_macd_hist >= 0  # Momentum reversal
 
         buy_score = sum([rsi_momentum, macd_positive, macd_growing, volume_ok, price_above_200ema])
         sell_score = sum([ema_bearish, rsi_overbought, macd_turning_neg])
 
-        # BUY: bullish EMA crossover + price in uptrend + 4+ confirmations
+        # BUY: fast EMA above slow + price in uptrend + 4+ indicator confirmations
         if ema_bullish and price_above_200ema and buy_score >= 4:
             confidence = min((buy_score + 1) / 6 * 100, 95)
-            reasons = ["EMA bullish crossover"]
+            reasons = ["EMA21 > EMA55 (bullish)"]
             if rsi_momentum:
                 reasons.append(f"RSI={indicators['rsi']} (momentum)")
             if macd_growing:
@@ -114,7 +115,7 @@ class EMACrossoverStrategy(BaseStrategy):
             confidence = min(sell_score / 3 * 100, 95)
             reasons = []
             if ema_bearish:
-                reasons.append("EMA bearish crossover")
+                reasons.append("EMA21 < EMA55 (bearish)")
             if rsi_overbought:
                 reasons.append(f"RSI overbought={indicators['rsi']}")
             if macd_turning_neg:

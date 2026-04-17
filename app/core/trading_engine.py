@@ -34,6 +34,9 @@ class TradingEngine:
         # Dedup tracking
         self._last_signals: dict[str, str] = {}  # pair -> last action
 
+        # Uptime tracking
+        self.start_time: datetime | None = None
+
         logger.info(
             f"Trading engine initialized | Mode: {settings.TRADING_MODE} | "
             f"Pairs: {settings.TRADING_PAIRS} | Strategy: {self.active_strategy}"
@@ -60,10 +63,12 @@ class TradingEngine:
 
     def start(self):
         self.active = True
+        self.start_time = datetime.utcnow()
         logger.info("Trading engine STARTED")
 
     def stop(self):
         self.active = False
+        self.start_time = None
         logger.info("Trading engine STOPPED")
 
     def set_strategy(self, strategy_name: str):

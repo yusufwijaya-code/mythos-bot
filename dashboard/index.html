@@ -1189,7 +1189,12 @@ async function loadStats() {
 
     _updateEngineButtons(data.bot_active);
     if (data.bot_active) {
-        if (!_engineStartTime) _engineStartTime = Date.now();
+        // Use server-side start time so uptime survives page refresh
+        if (data.engine_start_time) {
+            _engineStartTime = new Date(data.engine_start_time).getTime();
+        } else if (!_engineStartTime) {
+            _engineStartTime = Date.now();
+        }
         if (!_uptimeInterval) _startUptimeClock();
     } else {
         _stopUptimeClock();
@@ -1249,7 +1254,7 @@ async function loadTrades() {
             const cls = t.pnl >= 0 ? 'text-profit' : 'text-loss';
             pnlHtml = `<span class="${cls}">${t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}</span>`;
         }
-        const time = t.created_at ? new Date(t.created_at).toLocaleString() : '—';
+        const time = t.created_at ? new Date(t.created_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false }) : '—';
         return `<tr>
             <td style="color:var(--text-dim);font-size:.7rem">${time}</td>
             <td style="color:var(--cyan)">${t.pair}</td>
@@ -1271,7 +1276,7 @@ async function loadSignals() {
     }
     tbody.innerHTML = data.signals.map(s => {
         const cls = s.action === 'BUY' ? 'badge-buy' : s.action === 'SELL' ? 'badge-sell' : 'badge-hold';
-        const time = s.created_at ? new Date(s.created_at).toLocaleString() : '—';
+        const time = s.created_at ? new Date(s.created_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false }) : '—';
         const conf = s.confidence !== null ? s.confidence.toFixed(0) + '%' : '—';
         const exec = s.executed
             ? '<span style="color:var(--green)">✓</span>'
@@ -1295,7 +1300,7 @@ async function loadLogs(level = null) {
         return;
     }
     container.innerHTML = data.logs.map(l => {
-        const time = l.created_at ? new Date(l.created_at).toLocaleTimeString() : '';
+        const time = l.created_at ? new Date(l.created_at).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false }) : '';
         return `<div class="log-line"><span class="log-${l.level}">[${l.level}]</span><span class="log-time">${time}</span><span class="log-msg">${l.message}</span></div>`;
     }).join('');
     container.scrollTop = 0;
@@ -1402,7 +1407,7 @@ async function controlBot(action) {
         timer: 2500, showConfirmButton: false,
     });
     if (data.ok) {
-        if (action === 'start') { _engineStartTime = Date.now(); }
+        if (action === 'start') { _engineStartTime = null; }  // will be set from server on next loadStats
         else { _stopUptimeClock(); }
     }
     loadStats();

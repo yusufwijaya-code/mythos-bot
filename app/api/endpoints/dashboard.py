@@ -75,7 +75,7 @@ def get_trades(limit: int = 50, db: Session = Depends(get_db), user: dict = Depe
                 "pnl_pct": float(t.pnl_pct) if t.pnl_pct else None,
                 "mode": t.mode,
                 "strategy": t.strategy,
-                "created_at": t.created_at.isoformat() if t.created_at else None,
+                "created_at": (t.created_at.isoformat() + 'Z') if t.created_at else None,
             }
             for t in trades
         ]
@@ -96,7 +96,7 @@ def get_signals(limit: int = 50, db: Session = Depends(get_db), user: dict = Dep
                 "confidence": float(s.confidence) if s.confidence else None,
                 "indicators": s.indicators,
                 "executed": s.executed,
-                "created_at": s.created_at.isoformat() if s.created_at else None,
+                "created_at": (s.created_at.isoformat() + 'Z') if s.created_at else None,
             }
             for s in signals
         ]
@@ -147,7 +147,7 @@ def get_logs(
                 "level": l.level,
                 "module": l.module,
                 "message": l.message,
-                "created_at": l.created_at.isoformat() if l.created_at else None,
+                "created_at": (l.created_at.isoformat() + 'Z') if l.created_at else None,
             }
             for l in logs
         ]
@@ -172,6 +172,7 @@ def get_stats(db: Session = Depends(get_db), user: dict = Depends(get_current_us
         "balance": balance,
         "mode": mode,
         "bot_active": trading_engine.active,
+        "engine_start_time": (trading_engine.start_time.isoformat() + 'Z') if trading_engine.start_time else None,
         "strategy": trading_engine.active_strategy,
         "today": today_stats,
         "risk": {
