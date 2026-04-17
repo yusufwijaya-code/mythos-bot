@@ -155,6 +155,18 @@ def get_logs(
     }
 
 
+@router.get("/fonnte-status")
+def get_fonnte_status(user: dict = Depends(get_current_user)):
+    """Get Fonnte WhatsApp account info (quota, expiry, device)."""
+    from app.main import notifier
+    if notifier is None or not hasattr(notifier, "get_device_info"):
+        return {"status": False, "message": "Fonnte notifier not configured"}
+    info = notifier.get_device_info()
+    if not info:
+        return {"status": False, "message": "Failed to retrieve Fonnte device info"}
+    return {"status": True, "data": info}
+
+
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     """Get overall dashboard stats."""

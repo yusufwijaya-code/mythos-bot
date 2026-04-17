@@ -12,6 +12,7 @@ class FonnteNotifier(BaseNotifier):
     """WhatsApp notification via Fonnte API."""
 
     API_URL = "https://api.fonnte.com/send"
+    DEVICE_URL = "https://api.fonnte.com/device"
     MAX_RETRIES = 3
     DASHBOARD_LINK = "bit.ly/mythosbymydios"
 
@@ -55,6 +56,64 @@ class FonnteNotifier(BaseNotifier):
 
         logger.error(f"Failed to send WhatsApp after {self.MAX_RETRIES} attempts")
         return False
+
+    def get_device_info(self) -> dict:
+        """Fetch Fonnte device/account info including quota and expiry."""
+        if not self.token:
+            return {}
+        try:
+            response = httpx.post(
+                self.DEVICE_URL,
+                headers={"Authorization": self.token},
+                timeout=10,
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("status"):
+                    return data
+                logger.warning(f"Fonnte device info error: {data}")
+        except Exception as e:
+            logger.error(f"Fonnte get_device_info error: {e}")
+        return {}
+
+    def send_fonnte_status(self) -> bool:
+        """Send Fonnte account status (quota, expiry, device) via WhatsApp."""
+        info = self.get_device_info()
+        if not info:
+            return self.send_message(
+                f"📡 *FONNTE STATUS*\n{_SEP}\n❌ Gagal mengambil info akun Fonnte.\n⏱ {now_str()}"
+            )
+
+        quota = info.get("quota", "N/A")
+        expired = info.get("expired", "N/A")
+        device = info.get("device", "N/A")
+        name = info.get("name", "N/A")
+        package = info.get("package", info.get("plan", "N/A"))
+
+        # Quota warning indicator
+        if isinstance(quota, int):
+            if quota <= 50:
+                quota_icon = "🔴"
+            elif quota <= 200:
+                quota_icon = "🟡"
+            else:
+                quota_icon = "🟢"
+        else:
+            quota_icon = "⚪"
+
+        message = (
+            f"📡 *FONNTE STATUS*\n"
+            f"{_SEP}\n"
+            f"📱 Device     : {device}\n"
+            f"👤 Name       : {name}\n"
+            f"📦 Package    : {package}\n"
+            f"{_SEP}\n"
+            f"{quota_icon} Sisa Quota  : *{quota} pesan*\n"
+            f"📅 Expired    : {expired}\n"
+            f"{_SEP}\n"
+            f"⏱ Cek pada   : {now_str()}"
+        )
+        return self.send_message(message)
 
     def send_trade_buy(
         self,
@@ -140,6 +199,25 @@ class FonnteNotifier(BaseNotifier):
         drawdown = report.get("max_drawdown", 0)
         net_sign = "+" if net >= 0 else ""
 
+        # Fetch Fonnte quota for the report footer
+        fonnte_line = ""
+        try:
+            info = self.get_device_info()
+            if info:
+                quota = info.get("quota", "?")
+                expired = info.get("expired", "?")
+                quota_icon = "🔴" if isinstance(quota, int) and quota <= 50 else (
+                    "🟡" if isinstance(quota, int) and quota <= 200 else "🟢"
+                )
+                fonnte_line = (
+                    f"{_SEP}\n"
+                    f"📡 *Fonnte WA*\n"
+                    f"{quota_icon} Sisa Quota  : *{quota} pesan*\n"
+                    f"📅 Expired    : {expired}\n"
+                )
+        except Exception:
+            pass
+
         message = (
             f"📊 *DAILY REPORT — {report.get('date', now_str())}*\n"
             f"{_SEP}\n"
@@ -151,6 +229,7 @@ class FonnteNotifier(BaseNotifier):
             f"📤 Gross Profit  : +{gross_p:.2f} USDT\n"
             f"📥 Gross Loss    : -{gross_l:.2f} USDT\n"
             f"📉 Max Drawdown  : {drawdown:.2f}%\n"
+            f"{fonnte_line}"
             f"⏱ Generated     : {now_str()}"
         )
         return self.send_message(message)
