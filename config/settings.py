@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     TRAILING_STOP_PCT: float = 1.5
     MAX_TRADES_PER_DAY: int = 10
 
+    # Pair Scanner
+    SCANNER_ENABLED: bool = True
+    SCANNER_TOP_PAIRS: int = 20
+    SCANNER_MIN_VOLUME: float = 10_000_000  # Min 24h volume in USDT
+    MAX_OPEN_POSITIONS: int = 3
+
     # Paper Trading
     PAPER_INITIAL_BALANCE: float = 10000.0
 

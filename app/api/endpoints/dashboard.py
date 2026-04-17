@@ -2,6 +2,7 @@ from datetime import date, datetime
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from config.settings import settings
 from app.core.database import get_db
 from app.auth.dependencies import get_current_user
 from app.repositories.trade_repo import TradeRepository
@@ -168,6 +169,15 @@ def get_stats(db: Session = Depends(get_db), user: dict = Depends(get_current_us
     else:
         balance = trading_engine.binance.get_total_portfolio_usdt()
 
+    scanner_info = None
+    if trading_engine.scanner:
+        scanner_info = {
+            "enabled": True,
+            "pairs": trading_engine.scanner.get_cached_pairs(),
+            "top_n": settings.SCANNER_TOP_PAIRS,
+            "min_volume": settings.SCANNER_MIN_VOLUME,
+        }
+
     return {
         "balance": balance,
         "mode": mode,
@@ -181,4 +191,6 @@ def get_stats(db: Session = Depends(get_db), user: dict = Depends(get_current_us
             "emergency_stop": trading_engine.risk_manager.is_emergency,
             "error_count": trading_engine.risk_manager.error_count,
         },
+        "scanner": scanner_info,
+        "max_open_positions": settings.MAX_OPEN_POSITIONS,
     }

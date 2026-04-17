@@ -8,12 +8,27 @@ class BaseNotifier(ABC):
 
     @abstractmethod
     def send_trade_buy(
-        self, pair: str, entry: float, sl: float, tp: float
+        self,
+        pair: str,
+        entry: float,
+        sl: float,
+        tp: float,
+        quantity: float = 0.0,
+        strategy: str = "",
     ) -> bool:
         pass
 
     @abstractmethod
-    def send_trade_sell(self, pair: str, exit_price: float, pnl_pct: float) -> bool:
+    def send_trade_sell(
+        self,
+        pair: str,
+        exit_price: float,
+        pnl_pct: float,
+        pnl: float = 0.0,
+        entry: float = 0.0,
+        quantity: float = 0.0,
+        reason: str = "",
+    ) -> bool:
         pass
 
     @abstractmethod

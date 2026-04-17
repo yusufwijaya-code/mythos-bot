@@ -124,6 +124,14 @@ class BinanceService:
             logger.error(f"Binance API error getting portfolio value: {e}")
             return self.get_balance("USDT")
 
+    def get_all_tickers(self) -> list:
+        """Get 24h ticker stats for all symbols."""
+        try:
+            return self.client.get_ticker()
+        except BinanceAPIException as e:
+            logger.error(f"Binance API error getting all tickers: {e}")
+            return []
+
     def get_all_balances(self) -> dict:
         """Get all non-zero balances."""
         try:

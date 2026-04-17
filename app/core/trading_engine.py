@@ -6,6 +6,7 @@ from app.core.database import SessionLocal
 from app.core.risk_manager import RiskManager
 from app.services.binance_client import BinanceService
 from app.services.paper_trading import PaperTradingService
+from app.services.pair_scanner import PairScanner
 from app.strategies.ema_crossover import EMACrossoverStrategy
 from app.strategies.multi_timeframe import MultiTimeframeStrategy
 from app.strategies.base import SignalResult
@@ -31,6 +32,9 @@ class TradingEngine:
         }
         self.active_strategy = "ema_crossover"
 
+        # Pair scanner
+        self.scanner = PairScanner(self.binance) if settings.SCANNER_ENABLED else None
+
         # Dedup tracking
         self._last_signals: dict[str, str] = {}  # pair -> last action
 
@@ -40,6 +44,7 @@ class TradingEngine:
         logger.info(
             f"Trading engine initialized | Mode: {settings.TRADING_MODE} | "
             f"Pairs: {settings.TRADING_PAIRS} | Strategy: {self.active_strategy}"
+            + (f" | Scanner: ON (top {settings.SCANNER_TOP_PAIRS})" if self.scanner else "")
         )
 
     @property
@@ -76,6 +81,29 @@ class TradingEngine:
             self.active_strategy = strategy_name
             logger.info(f"Strategy changed to: {strategy_name}")
 
+    def _get_trading_pairs(self) -> list[str]:
+        """Get pairs to trade this cycle: open positions + scanner/config pairs."""
+        pairs = set()
+
+        # Always include pairs with open positions (must check SELL signals)
+        db = SessionLocal()
+        try:
+            pos_repo = PositionRepository(db)
+            for pos in pos_repo.get_open_positions(mode=settings.TRADING_MODE):
+                pairs.add(pos.pair)
+        finally:
+            db.close()
+
+        # Add pairs from scanner or static config
+        if self.scanner:
+            for p in self.scanner.get_top_pairs():
+                pairs.add(p)
+        else:
+            for p in settings.TRADING_PAIRS:
+                pairs.add(p)
+
+        return list(pairs)
+
     def run_cycle(self):
         """Execute one trading cycle for all pairs."""
         if not self.active:
@@ -83,7 +111,7 @@ class TradingEngine:
 
         self.risk_manager.reset_daily()
 
-        for pair in settings.TRADING_PAIRS:
+        for pair in self._get_trading_pairs():
             try:
                 self._process_pair(pair)
             except Exception as e:
@@ -158,10 +186,18 @@ class TradingEngine:
 
     def _handle_buy(self, pair, signal, balance, pos_repo, trade_repo, signal_id, signal_repo):
         """Handle BUY signal execution."""
-        # Check if already in position
+        # Check if already in position for this pair
         existing = pos_repo.get_open_position(pair, mode=settings.TRADING_MODE)
         if existing:
             logger.info(f"[{pair}] Already in position, skipping BUY")
+            return
+
+        # Check max concurrent open positions
+        all_open = pos_repo.get_open_positions(mode=settings.TRADING_MODE)
+        if len(all_open) >= settings.MAX_OPEN_POSITIONS:
+            logger.info(
+                f"[{pair}] Max positions ({settings.MAX_OPEN_POSITIONS}) reached, skipping BUY"
+            )
             return
 
         price = self.binance.get_ticker_price(pair)
@@ -228,7 +264,10 @@ class TradingEngine:
         )
 
         if self.notifier:
-            self.notifier.send_trade_buy(pair, price, stop_loss, take_profit)
+            self.notifier.send_trade_buy(
+                pair, price, stop_loss, take_profit,
+                quantity=quantity, strategy=signal.strategy,
+            )
 
     def _handle_sell(self, pair, signal, pos_repo, trade_repo, signal_id, signal_repo):
         """Handle SELL signal execution."""
@@ -313,7 +352,11 @@ class TradingEngine:
         )
 
         if self.notifier:
-            self.notifier.send_trade_sell(pair, price, pnl_pct)
+            self.notifier.send_trade_sell(
+                pair, price, pnl_pct,
+                pnl=pnl, entry=entry_price, quantity=quantity,
+                reason=signal.reason if hasattr(signal, "reason") else "",
+            )
 
     def check_stop_loss_take_profit(self):
         """Check all open positions for SL/TP hits."""
