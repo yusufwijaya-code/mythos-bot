@@ -9,6 +9,7 @@ from app.services.paper_trading import PaperTradingService
 from app.services.pair_scanner import PairScanner
 from app.strategies.ema_crossover import EMACrossoverStrategy
 from app.strategies.multi_timeframe import MultiTimeframeStrategy
+from app.strategies.trend_rider import TrendRiderStrategy
 from app.strategies.base import SignalResult
 from app.repositories.trade_repo import TradeRepository
 from app.repositories.signal_repo import SignalRepository
@@ -29,6 +30,7 @@ class TradingEngine:
         self.strategies = {
             "ema_crossover": EMACrossoverStrategy(),
             "multi_timeframe": MultiTimeframeStrategy(),
+            "trend_rider": TrendRiderStrategy(),
         }
         self.active_strategy = "ema_crossover"
 
@@ -137,15 +139,27 @@ class TradingEngine:
                 self.stop()
             return
 
-        # Get market data
-        df = self.binance.get_klines(pair, settings.TIMEFRAME)
-        if df.empty:
-            logger.warning(f"[{pair}] No kline data received")
-            return
-
         # Run strategy
         strategy = self.strategies[self.active_strategy]
-        signal = strategy.analyze(df, pair)
+
+        if getattr(strategy, "requires_multi_tf", False):
+            # Multi-timeframe strategy: fetch trend TF + entry TF separately
+            df_entry = self.binance.get_klines(pair, strategy.entry_tf, limit=300)
+            df_trend = self.binance.get_klines(pair, strategy.trend_tf, limit=250)
+            if df_entry.empty or df_trend.empty:
+                logger.warning(
+                    f"[{pair}] No kline data for multi-TF strategy "
+                    f"(entry={strategy.entry_tf}, trend={strategy.trend_tf})"
+                )
+                return
+            signal = strategy.analyze_multi(df_entry, df_trend, pair)
+        else:
+            # Single-timeframe strategy
+            df = self.binance.get_klines(pair, settings.TIMEFRAME)
+            if df.empty:
+                logger.warning(f"[{pair}] No kline data received")
+                return
+            signal = strategy.analyze(df, pair)
 
         # Save signal to DB
         db = SessionLocal()
