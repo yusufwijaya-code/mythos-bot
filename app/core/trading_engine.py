@@ -334,7 +334,39 @@ class TradingEngine:
                 quantity = adjusted
 
             if quantity <= 0:
-                logger.warning(f"[{pair}] No {base_asset} balance available to sell, skipping")
+                # Balance is 0 — asset was likely sold manually on Binance.
+                # Force-close the DB position to stop the retry loop.
+                entry_price = float(position.entry_price)
+                orig_qty = float(position.quantity)
+                pnl = (price - entry_price) * orig_qty
+                pnl_pct = (price - entry_price) / entry_price * 100
+                trade_repo.create(
+                    pair=pair, side="SELL", price=price, quantity=orig_qty,
+                    total=orig_qty * price, fee=0, pnl=pnl, pnl_pct=pnl_pct,
+                    mode=settings.TRADING_MODE, strategy=signal.strategy,
+                )
+                pos_repo.close_position(position.id, current_price=price)
+                self.risk_manager.record_trade(pnl)
+                if signal_id:
+                    signal_repo.mark_executed(signal_id)
+                self._last_signals[pair] = "SELL"
+                logger.warning(
+                    f"[{pair}] No {base_asset} balance found — position was likely sold "
+                    f"manually on Binance. DB position force-closed at ${price}."
+                )
+                if self.notifier:
+                    today_stats = trade_repo.get_daily_stats(
+                        target_date=date.today(), mode=settings.TRADING_MODE
+                    )
+                    self.notifier.send_trade_sell(
+                        pair, price, pnl_pct,
+                        pnl=pnl, entry=entry_price, quantity=orig_qty,
+                        reason="Sold manually on Binance — DB position synced",
+                        balance=self.get_balance(),
+                        today_trades=today_stats.get("total_trades", 0),
+                        win_rate=today_stats.get("win_rate", 0),
+                        today_pnl=today_stats.get("net_profit", 0),
+                    )
                 return
 
             # Check minimum notional for SELL
