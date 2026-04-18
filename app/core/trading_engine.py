@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from loguru import logger
 
 from config.settings import settings
@@ -275,9 +275,16 @@ class TradingEngine:
         )
 
         if self.notifier:
+            today_stats = trade_repo.get_daily_stats(
+                target_date=date.today(), mode=settings.TRADING_MODE
+            )
             self.notifier.send_trade_buy(
                 pair, price, stop_loss, take_profit,
                 quantity=quantity, strategy=signal.strategy,
+                balance=balance,
+                today_trades=today_stats.get("total_trades", 0),
+                win_rate=today_stats.get("win_rate", 0),
+                today_pnl=today_stats.get("net_profit", 0),
             )
 
     def _handle_sell(self, pair, signal, pos_repo, trade_repo, signal_id, signal_repo):
@@ -331,7 +338,7 @@ class TradingEngine:
 
                     convert_result = self.binance.convert_to_usdt(base_asset, quantity)
                     if convert_result:
-                        reason = f"{signal.strategy.upper()} (auto-converted ke USDT)"
+                        reason = f"{signal.strategy.upper()} (auto-converted to USDT)"
                         logger.info(
                             f"[{pair}] {signal.strategy.upper()} auto-converted "
                             f"{quantity} {base_asset} → USDT via Convert API"
@@ -358,10 +365,17 @@ class TradingEngine:
                         signal_repo.mark_executed(signal_id)
                     self._last_signals[pair] = "SELL"
                     if self.notifier:
+                        today_stats = trade_repo.get_daily_stats(
+                            target_date=date.today(), mode=settings.TRADING_MODE
+                        )
                         self.notifier.send_trade_sell(
                             pair, price, pnl_pct,
                             pnl=pnl, entry=entry_price, quantity=quantity,
                             reason=reason,
+                            balance=self.get_balance(),
+                            today_trades=today_stats.get("total_trades", 0),
+                            win_rate=today_stats.get("win_rate", 0),
+                            today_pnl=today_stats.get("net_profit", 0),
                         )
                 else:
                     logger.warning(
@@ -417,10 +431,17 @@ class TradingEngine:
         )
 
         if self.notifier:
+            today_stats = trade_repo.get_daily_stats(
+                target_date=date.today(), mode=settings.TRADING_MODE
+            )
             self.notifier.send_trade_sell(
                 pair, price, pnl_pct,
                 pnl=pnl, entry=entry_price, quantity=quantity,
                 reason=signal.reason if hasattr(signal, "reason") else "",
+                balance=self.get_balance(),
+                today_trades=today_stats.get("total_trades", 0),
+                win_rate=today_stats.get("win_rate", 0),
+                today_pnl=today_stats.get("net_profit", 0),
             )
 
     def check_stop_loss_take_profit(self):

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 
 class BaseNotifier(ABC):
@@ -15,6 +16,10 @@ class BaseNotifier(ABC):
         tp: float,
         quantity: float = 0.0,
         strategy: str = "",
+        balance: Optional[float] = None,
+        today_trades: Optional[int] = None,
+        win_rate: Optional[float] = None,
+        today_pnl: Optional[float] = None,
     ) -> bool:
         pass
 
@@ -28,6 +33,10 @@ class BaseNotifier(ABC):
         entry: float = 0.0,
         quantity: float = 0.0,
         reason: str = "",
+        balance: Optional[float] = None,
+        today_trades: Optional[int] = None,
+        win_rate: Optional[float] = None,
+        today_pnl: Optional[float] = None,
     ) -> bool:
         pass
 
