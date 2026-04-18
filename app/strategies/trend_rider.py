@@ -168,6 +168,7 @@ class TrendRiderStrategy(BaseStrategy):
             "macd_positive":       macd_positive,
             "macd_growing":        macd_growing,
             "macd_accelerating":   macd_accelerating,
+            "macd_negative":       macd_negative,
             "macd_reversing":      macd_reversing,
             "volume_ok":           volume_ok,
             "buy_score":           round(buy_score + buy_bonus, 1),
