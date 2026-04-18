@@ -316,15 +316,59 @@ class TradingEngine:
                 logger.warning(f"[{pair}] No {base_asset} balance available to sell, skipping")
                 return
 
-            # Check minimum notional for SELL — if too low, don't error (price may recover)
+            # Check minimum notional for SELL
             min_notional = self.binance.get_min_notional(pair)
             order_value = quantity * price
             if order_value < min_notional:
-                logger.warning(
-                    f"[{pair}] SELL value {order_value:.4f} USDT below "
-                    f"min notional {min_notional} USDT — holding position, not an error"
-                )
-                return  # Not an error — wait for price to recover
+                is_forced = signal.strategy in ("stop_loss", "take_profit")
+                if is_forced:
+                    # SL/TP: value below NOTIONAL — try Binance Convert API first.
+                    # Convert API bypasses NOTIONAL filter (designed for dust conversion).
+                    base_asset = pair.replace("USDT", "")
+                    entry_price = float(position.entry_price)
+                    pnl = (price - entry_price) * quantity
+                    pnl_pct = (price - entry_price) / entry_price * 100
+
+                    convert_result = self.binance.convert_to_usdt(base_asset, quantity)
+                    if convert_result:
+                        reason = f"{signal.strategy.upper()} (auto-converted ke USDT)"
+                        logger.info(
+                            f"[{pair}] {signal.strategy.upper()} auto-converted "
+                            f"{quantity} {base_asset} → USDT via Convert API"
+                        )
+                    else:
+                        reason = (
+                            f"{signal.strategy.upper()} — Posisi ditutup di sistem. "
+                            f"⚠️ Jual {quantity} {base_asset} manual di Binance!"
+                        )
+                        logger.warning(
+                            f"[{pair}] {signal.strategy.upper()} force-closed in DB "
+                            f"(convert failed, {order_value:.4f} < min notional {min_notional} USDT). "
+                            f"Sell {base_asset} manually!"
+                        )
+
+                    trade_repo.create(
+                        pair=pair, side="SELL", price=price, quantity=quantity,
+                        total=order_value, fee=0, pnl=pnl, pnl_pct=pnl_pct,
+                        mode=settings.TRADING_MODE, strategy=signal.strategy,
+                    )
+                    pos_repo.close_position(position.id, current_price=price)
+                    self.risk_manager.record_trade(pnl)
+                    if signal_id:
+                        signal_repo.mark_executed(signal_id)
+                    self._last_signals[pair] = "SELL"
+                    if self.notifier:
+                        self.notifier.send_trade_sell(
+                            pair, price, pnl_pct,
+                            pnl=pnl, entry=entry_price, quantity=quantity,
+                            reason=reason,
+                        )
+                else:
+                    logger.warning(
+                        f"[{pair}] SELL value {order_value:.4f} USDT below "
+                        f"min notional {min_notional} USDT — holding, wait for price recovery"
+                    )
+                return
 
         # Execute order
         if self.is_paper:

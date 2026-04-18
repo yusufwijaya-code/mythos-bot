@@ -1,4 +1,10 @@
+import hashlib
+import hmac
+import time
+import urllib.parse
 from typing import Optional
+
+import httpx
 import pandas as pd
 from binance.client import Client
 from binance.exceptions import BinanceAPIException
@@ -213,6 +219,80 @@ class BinanceService:
                 if f["filterType"] == "LOT_SIZE":
                     return float(f["stepSize"])
         return 0.001
+
+    def _sign(self, params: dict) -> str:
+        """Create HMAC SHA256 signature for Binance API params."""
+        query_string = urllib.parse.urlencode(params)
+        return hmac.new(
+            settings.BINANCE_API_SECRET.encode("utf-8"),
+            query_string.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+
+    def convert_to_usdt(self, asset: str, amount: float) -> Optional[dict]:
+        """Convert asset to USDT via Binance Convert API.
+
+        Bypasses the NOTIONAL minimum filter — useful for 'dust' positions
+        that are too small to sell via the regular spot order.
+        Returns the acceptQuote response dict on success, or None on failure.
+        """
+        BASE = "https://api.binance.com"
+        headers = {"X-MBX-APIKEY": settings.BINANCE_API_KEY}
+
+        try:
+            # Step 1: Request a conversion quote
+            ts = int(time.time() * 1000)
+            params = {
+                "fromAsset": asset,
+                "toAsset": "USDT",
+                "fromAmount": str(amount),
+                "walletType": "SPOT",
+                "timestamp": ts,
+            }
+            params["signature"] = self._sign(params)
+
+            resp = httpx.post(
+                f"{BASE}/sapi/v1/convert/getQuote",
+                headers=headers,
+                data=params,
+                timeout=10,
+            )
+            if resp.status_code != 200:
+                logger.warning(f"[Convert] Quote failed ({resp.status_code}): {resp.text}")
+                return None
+
+            quote = resp.json()
+            quote_id = quote.get("quoteId")
+            if not quote_id:
+                logger.warning(f"[Convert] No quoteId returned: {quote}")
+                return None
+
+            # Step 2: Accept the quote
+            ts = int(time.time() * 1000)
+            accept_params = {"quoteId": quote_id, "timestamp": ts}
+            accept_params["signature"] = self._sign(accept_params)
+
+            result = httpx.post(
+                f"{BASE}/sapi/v1/convert/acceptQuote",
+                headers=headers,
+                data=accept_params,
+                timeout=10,
+            )
+            if result.status_code == 200:
+                data = result.json()
+                if data.get("orderId"):
+                    logger.info(
+                        f"[Convert] {amount} {asset} → USDT | "
+                        f"OrderId: {data['orderId']} | Status: {data.get('orderStatus')}"
+                    )
+                    return data
+
+            logger.warning(f"[Convert] Accept failed ({result.status_code}): {result.text}")
+            return None
+
+        except Exception as e:
+            logger.error(f"[Convert] Error converting {asset} → USDT: {e}")
+            return None
 
     def get_min_notional(self, pair: str) -> float:
         """Get minimum order value (quantity × price) for a pair."""
