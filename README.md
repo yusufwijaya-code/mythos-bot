@@ -211,7 +211,7 @@ source /home/bot-trading-mythos/database/init.sql;
 
 # Verifikasi
 SHOW DATABASES;
-USE bot_trading_mythos;
+USE bot_trading_;
 SHOW TABLES;
 exit;
 ```
@@ -230,7 +230,7 @@ sudo systemctl start mysql
 1. Login ke https://www.binance.com
 2. Buka menu **API Management** (di profil akun)
 3. Klik **Create API** → Pilih **System Generated**
-4. Beri nama API, contoh: "Bot Trading Mythos"
+4. Beri nama API, contoh: "Bot Trading "
 5. **PENTING - Setting Permissions:**
    - ✅ Enable Reading
    - ✅ Enable Spot & Margin Trading
@@ -251,9 +251,9 @@ Login menggunakan email + password dengan bcrypt hashing.
 Jalankan perintah di server untuk generate bcrypt hash:
 
 ```bash
-cd /home/bot-trading-mythos
+cd /home/bot-trading-
 source venv/bin/activate
-python3 -c "from passlib.context import CryptContext; print(CryptContext(schemes=['bcrypt']).hash('Mythos@091375'))"
+python3 -c "from passlib.context import CryptContext; print(CryptContext(schemes=['bcrypt']).hash('@091375'))"
 ```
 
 **Output contoh:**
@@ -266,7 +266,7 @@ Copy hash tersebut untuk langkah 9 (`.env` configuration).
 ### 9. Konfigurasi Environment Variables
 
 ```bash
-cd /home/bot-trading-mythos
+cd /home/bot-trading-
 nano config/.env
 ```
 
@@ -279,7 +279,7 @@ BINANCE_API_SECRET=paste_secret_key_binance_anda
 # --- Database (MySQL) ---
 DB_HOST=localhost
 DB_PORT=3306
-DB_NAME=bot_trading_mythos
+DB_NAME=bot_trading_
 DB_USER=root
 DB_PASSWORD=password_mysql_anda
 
@@ -325,7 +325,7 @@ Simpan: `Ctrl+O` → Enter → `Ctrl+X`
 
 **Opsi A: Menjalankan langsung (RECOMMENDED untuk testing):**
 ```bash
-cd /home/bot-trading-mythos
+cd /home/bot-trading-
 source venv/bin/activate
 python scripts/run_bot.py
 ```
@@ -344,7 +344,7 @@ http://IP_SERVER_ANDA:8000
 
 **Login dengan:**
 - **Email:** `yusufwijaya3@gmail.com`
-- **Password:** `Mythos@091375`
+- **Password:** `Mythosxxxxx`
 
 Dashboard menampilkan:
 - Balance overview
